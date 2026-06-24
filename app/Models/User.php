@@ -5,6 +5,8 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -67,5 +69,22 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Insegnamenti di cui il docente è titolare (pivot docente_insegnamento).
+     */
+    public function insegnamenti(): BelongsToMany
+    {
+        return $this->belongsToMany(Insegnamento::class, 'docente_insegnamento')
+            ->withTimestamps();
+    }
+
+    /**
+     * Appelli creati dal docente.
+     */
+    public function appelli(): HasMany
+    {
+        return $this->hasMany(Appello::class);
     }
 }
