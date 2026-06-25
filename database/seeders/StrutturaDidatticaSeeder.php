@@ -9,6 +9,7 @@ use App\Models\Insegnamento;
 use App\Models\PeriodoInserimento;
 use App\Models\Sessione;
 use App\Models\User;
+use App\Support\CalendarioFestivita;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 
@@ -50,10 +51,17 @@ class StrutturaDidatticaSeeder extends Seeder
             'anno_frequenza' => 1,
             'corso_studio_id' => $matematica->id,
         ]);
+        // Stesso anno (2°) di Basi di Dati/Algoritmi, ma corso diverso (Matematica):
+        // serve a mostrare che NON genera conflitto pur sovrapponendosi nell'orario.
+        $algebra = Insegnamento::create([
+            'nome' => 'Algebra Lineare',
+            'anno_frequenza' => 2,
+            'corso_studio_id' => $matematica->id,
+        ]);
 
         // Associazione docenti <-> insegnamenti
         $docente1->insegnamenti()->attach([$programmazione->id, $basiDati->id]);
-        $docente2->insegnamenti()->attach([$algoritmi->id, $analisi->id]);
+        $docente2->insegnamenti()->attach([$algoritmi->id, $analisi->id, $algebra->id]);
 
         // Sessione e finestra di inserimento (la data odierna rientra nella finestra)
         $sessione = Sessione::create([
@@ -67,8 +75,13 @@ class StrutturaDidatticaSeeder extends Seeder
             'data_fine' => Carbon::today()->addDays(15),
         ]);
 
-        // Appelli di esempio
-        $giornoEsame = Carbon::today()->addDays(20)->format('Y-m-d');
+        // Appelli di esempio: si parte da oggi + 20 giorni, spostandosi al primo
+        // giorno feriale (gli appelli non possono cadere nel weekend o nelle festività)
+        $giorno = Carbon::today()->addDays(20);
+        while (! CalendarioFestivita::eLavorativo($giorno)) {
+            $giorno->addDay();
+        }
+        $giornoEsame = $giorno->format('Y-m-d');
 
         // Appello senza conflitti (1° anno)
         Appello::create([
@@ -82,7 +95,8 @@ class StrutturaDidatticaSeeder extends Seeder
             'note' => null,
         ]);
 
-        // Coppia in conflitto: stesso anno (2°), stessa data, fasce sovrapposte
+        // Coppia in conflitto: stesso corso (Informatica) e stesso anno (2°),
+        // stessa data, fasce orarie sovrapposte.
         Appello::create([
             'insegnamento_id' => $basiDati->id,
             'sessione_id' => $sessione->id,
@@ -101,7 +115,20 @@ class StrutturaDidatticaSeeder extends Seeder
             'ora_inizio' => '11:00',
             'ora_fine' => '13:00',
             'aula' => 'Aula B2',
-            'note' => 'Sovrapposizione con Basi di Dati (stesso anno)',
+            'note' => 'Sovrapposizione con Basi di Dati (stesso corso e anno)',
+        ]);
+
+        // Stesso anno (2°) e stessa fascia dei precedenti, ma corso diverso
+        // (Matematica): NON è un conflitto perché gli studenti sono diversi.
+        Appello::create([
+            'insegnamento_id' => $algebra->id,
+            'sessione_id' => $sessione->id,
+            'user_id' => $docente2->id,
+            'data' => $giornoEsame,
+            'ora_inizio' => '11:00',
+            'ora_fine' => '13:00',
+            'aula' => 'Aula M1',
+            'note' => 'Stesso anno di Basi di Dati/Algoritmi ma corso diverso: nessun conflitto',
         ]);
 
         // Impostazioni: modalità di gestione dei conflitti
