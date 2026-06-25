@@ -158,6 +158,17 @@ class AppelloTest extends TestCase
         $response->assertDontSee('Altrui');
     }
 
+    public function test_non_si_puo_fissare_un_appello_in_una_data_passata(): void
+    {
+        // Tre giorni fa (venerdì rispetto al lunedì congelato): giorno feriale ma passato
+        $response = $this->actingAs($this->docente)->post(route('appelli.store'), $this->datiValidi([
+            'data' => Carbon::today()->subDays(3)->format('Y-m-d'),
+        ]));
+
+        $response->assertSessionHasErrors('data');
+        $this->assertDatabaseCount('appelli', 0);
+    }
+
     public function test_non_si_puo_fissare_un_appello_nel_weekend(): void
     {
         $sabato = Carbon::today()->next(Carbon::SATURDAY)->format('Y-m-d');

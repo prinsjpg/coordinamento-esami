@@ -106,6 +106,25 @@ class ConflittoTest extends TestCase
         $response->assertOk()->assertJson(['conflitto' => false, 'numero' => 0]);
     }
 
+    public function test_endpoint_nessun_conflitto_tra_corsi_diversi(): void
+    {
+        // Insegnamento dello stesso anno (2°) ma di un altro corso di studio
+        $altroCorso = CorsoStudio::create(['nome' => 'Matematica']);
+        $insAltroCorso = Insegnamento::create([
+            'nome' => 'Analisi II', 'anno_frequenza' => 2, 'corso_studio_id' => $altroCorso->id,
+        ]);
+        $this->docente->insegnamenti()->attach($insAltroCorso->id);
+
+        $response = $this->actingAs($this->docente)->getJson(route('appelli.verifica-conflitto', [
+            'insegnamento_id' => $insAltroCorso->id,
+            'data' => $this->giorno,
+            'ora_inizio' => '11:00',
+            'ora_fine' => '13:00',
+        ]));
+
+        $response->assertOk()->assertJson(['conflitto' => false]);
+    }
+
     public function test_endpoint_nessun_conflitto_tra_anni_diversi(): void
     {
         $response = $this->actingAs($this->docente)->getJson(route('appelli.verifica-conflitto', [
