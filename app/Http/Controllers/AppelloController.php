@@ -7,6 +7,7 @@ use App\Models\Configurazione;
 use App\Models\Insegnamento;
 use App\Models\Sessione;
 use App\Services\ConflittoService;
+use App\Support\CalendarioFestivita;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -46,6 +47,10 @@ class AppelloController extends Controller
     {
         $user = $request->user();
         $dati = $this->validateRequest($request, $user);
+
+        if ($errore = $this->violazioneGiorno($dati['data'])) {
+            return back()->withInput()->withErrors($errore);
+        }
 
         $sessione = Sessione::findOrFail($dati['sessione_id']);
 
@@ -87,6 +92,11 @@ class AppelloController extends Controller
         $this->autorizza($user, $appello);
 
         $dati = $this->validateRequest($request, $user);
+
+        if ($errore = $this->violazioneGiorno($dati['data'])) {
+            return back()->withInput()->withErrors($errore);
+        }
+
         $sessione = Sessione::findOrFail($dati['sessione_id']);
 
         if ($errore = $this->violazioniSessione($sessione, $dati['data'], $user)) {
@@ -240,6 +250,26 @@ class AppelloController extends Controller
 
         if (! $finestraAperta) {
             return ['sessione_id' => 'La finestra di inserimento per questa sessione non è attualmente aperta.'];
+        }
+
+        return null;
+    }
+
+    /**
+     * Verifica che la data dell'appello non cada nel weekend o in una festività.
+     *
+     * @return array<string, string>|null  Errore da mostrare, oppure null se valida.
+     */
+    private function violazioneGiorno(string $data): ?array
+    {
+        $giorno = Carbon::parse($data);
+
+        if ($giorno->isWeekend()) {
+            return ['data' => 'Non è possibile fissare un appello di sabato o domenica.'];
+        }
+
+        if ($festa = CalendarioFestivita::nomeFestivita($giorno)) {
+            return ['data' => "Non è possibile fissare un appello in un giorno festivo ({$festa})."];
         }
 
         return null;

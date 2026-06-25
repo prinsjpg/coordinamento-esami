@@ -23,6 +23,11 @@ class AppelloTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Congela l'orologio su un lunedì di settembre (mese senza festività
+        // nazionali), così le date di test sono giorni feriali deterministici.
+        Carbon::setTestNow(Carbon::parse('2026-09-01')->next(Carbon::MONDAY));
+
         $this->seed(RolesAndPermissionsSeeder::class);
 
         $this->docente = User::factory()->create();
@@ -48,12 +53,19 @@ class AppelloTest extends TestCase
         ]);
     }
 
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
+    }
+
     private function datiValidi(array $override = []): array
     {
         return array_merge([
             'insegnamento_id' => $this->insegnamento->id,
             'sessione_id' => $this->sessione->id,
-            'data' => Carbon::today()->addDays(5)->format('Y-m-d'),
+            // Mercoledì successivo: giorno feriale entro il periodo della sessione
+            'data' => Carbon::today()->next(Carbon::WEDNESDAY)->format('Y-m-d'),
             'ora_inizio' => '09:00',
             'ora_fine' => '11:00',
             'aula' => 'Aula A1',
@@ -144,6 +156,40 @@ class AppelloTest extends TestCase
         $response->assertOk();
         $response->assertSee('Mia');
         $response->assertDontSee('Altrui');
+    }
+
+    public function test_non_si_puo_fissare_un_appello_nel_weekend(): void
+    {
+        $sabato = Carbon::today()->next(Carbon::SATURDAY)->format('Y-m-d');
+
+        $response = $this->actingAs($this->docente)->post(route('appelli.store'), $this->datiValidi([
+            'data' => $sabato,
+        ]));
+
+        $response->assertSessionHasErrors('data');
+        $this->assertDatabaseCount('appelli', 0);
+    }
+
+    public function test_non_si_puo_fissare_un_appello_in_una_festivita(): void
+    {
+        // Sessione ampia che comprende il giorno di Natale
+        $sessione = Sessione::create([
+            'nome' => 'Sessione Invernale',
+            'data_inizio' => Carbon::today(),
+            'data_fine' => Carbon::today()->addDays(180),
+        ]);
+        $sessione->periodiInserimento()->create([
+            'data_inizio' => Carbon::today()->subDays(2),
+            'data_fine' => Carbon::today()->addDays(2),
+        ]);
+
+        $response = $this->actingAs($this->docente)->post(route('appelli.store'), $this->datiValidi([
+            'sessione_id' => $sessione->id,
+            'data' => Carbon::create(Carbon::today()->year, 12, 25)->format('Y-m-d'),
+        ]));
+
+        $response->assertSessionHasErrors('data');
+        $this->assertDatabaseCount('appelli', 0);
     }
 
     public function test_l_admin_vede_tutti_gli_appelli_e_ignora_la_finestra(): void
