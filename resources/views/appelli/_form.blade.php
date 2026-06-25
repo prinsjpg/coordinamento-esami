@@ -81,8 +81,9 @@
     </div>
 </div>
 
-{{-- Esito della verifica conflitti in tempo reale --}}
+{{-- Avviso giorno non lavorativo (weekend) e esito conflitti in tempo reale --}}
 <input type="hidden" id="appello_id" value="{{ $appello->id }}">
+<div id="avviso-data" class="mt-3"></div>
 <div id="avviso-conflitto" class="mt-3"></div>
 
 <div class="d-flex gap-2 mt-4">
@@ -138,9 +139,28 @@
             });
         }
 
+        // Avviso immediato se la data scelta cade nel weekend
+        const $avvisoData = $('#avviso-data');
+
+        function verificaWeekend() {
+            const valore = $('#data').val();
+            if (!valore) { $avvisoData.empty(); return; }
+
+            const parti = valore.split('-');
+            const giorno = new Date(parti[0], parti[1] - 1, parti[2]).getDay();
+
+            if (giorno === 0 || giorno === 6) {
+                $avvisoData.html('<div class="alert alert-warning mb-0 py-2"><i class="bi bi-exclamation-triangle"></i> La data scelta cade di sabato o domenica: non è possibile fissare un appello nel weekend.</div>');
+            } else {
+                $avvisoData.empty();
+            }
+        }
+
+        $('#data').on('change', verificaWeekend);
         $campi.on('change', verificaConflitto);
 
         // Verifica anche allo apertura, se il form è già compilato (modifica)
+        verificaWeekend();
         verificaConflitto();
     });
 </script>

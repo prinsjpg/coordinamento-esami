@@ -27,6 +27,10 @@ class ConflittoTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Orologio congelato su un lunedì di settembre: le date di test sono feriali
+        Carbon::setTestNow(Carbon::parse('2026-09-01')->next(Carbon::MONDAY));
+
         $this->seed(RolesAndPermissionsSeeder::class);
 
         $this->docente = User::factory()->create();
@@ -48,7 +52,7 @@ class ConflittoTest extends TestCase
             'data_fine' => Carbon::today()->addDay(),
         ]);
 
-        $this->giorno = Carbon::today()->addDays(10)->format('Y-m-d');
+        $this->giorno = Carbon::today()->next(Carbon::WEDNESDAY)->format('Y-m-d');
 
         // Appello esistente: insegnamento B (anno 2), 10:00-12:00
         Appello::create([
@@ -59,6 +63,12 @@ class ConflittoTest extends TestCase
             'ora_inizio' => '10:00',
             'ora_fine' => '12:00',
         ]);
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
     }
 
     private function dati(array $override = []): array
