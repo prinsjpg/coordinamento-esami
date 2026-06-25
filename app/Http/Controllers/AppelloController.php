@@ -291,9 +291,11 @@ class AppelloController extends Controller
      */
     private function messaggioConflitto($conflitti): string
     {
-        $anno = $conflitti->first()->insegnamento->anno_frequenza;
+        $insegnamento = $conflitti->first()->insegnamento;
+        $anno = $insegnamento->anno_frequenza;
+        $corso = $insegnamento->corsoStudio->nome;
 
         return "Conflitto con {$conflitti->count()} appello/i dello stesso anno ({$anno}°) "
-            . 'nella stessa data e fascia oraria.';
+            . "del corso «{$corso}» nella stessa data e fascia oraria.";
     }
 }

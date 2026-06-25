@@ -26,9 +26,10 @@ Progetto per il corso di **Programmazione Web**.
 
 ## Regola dei conflitti
 
-Due appelli sono in **conflitto** quando gli insegnamenti hanno lo **stesso anno
-di frequenza**, cadono nella **stessa data** e le **fasce orarie si
-sovrappongono**. La modalità di gestione è configurabile dall'amministratore:
+Due appelli sono in **conflitto** quando gli insegnamenti appartengono allo
+**stesso corso di studio** e allo **stesso anno di frequenza**, cadono nella
+**stessa data** e le **fasce orarie si sovrappongono** (gli studenti coinvolti
+sono gli stessi). La modalità di gestione è configurabile dall'amministratore:
 
 - **Blocco**: impedisce il salvataggio dell'appello in conflitto.
 - **Avviso**: consente il salvataggio segnalando il conflitto.
