@@ -207,13 +207,14 @@ class AppelloController extends Controller
         return $request->validate([
             'insegnamento_id' => ['required', Rule::in($insegnamentiPermessi)],
             'sessione_id' => ['required', 'exists:sessioni,id'],
-            'data' => ['required', 'date'],
+            'data' => ['required', 'date', 'after_or_equal:today'],
             'ora_inizio' => ['required', 'date_format:H:i'],
             'ora_fine' => ['required', 'date_format:H:i', 'after:ora_inizio'],
             'aula' => ['nullable', 'string', 'max:255'],
             'note' => ['nullable', 'string', 'max:1000'],
         ], [
             'insegnamento_id.in' => 'Seleziona un insegnamento tra quelli a te assegnati.',
+            'data.after_or_equal' => 'Non è possibile fissare un appello in una data già passata.',
         ], [
             'insegnamento_id' => 'insegnamento',
             'sessione_id' => 'sessione',
