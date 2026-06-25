@@ -3,6 +3,7 @@
 use App\Http\Controllers\ConfigurazioneController;
 use App\Http\Controllers\CorsoStudioController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ImportController;
 use App\Http\Controllers\InsegnamentoController;
 use App\Http\Controllers\PeriodoInserimentoController;
 use App\Http\Controllers\SessioneController;
@@ -40,6 +41,11 @@ Route::middleware([
             ->name('periodi.store');
         Route::delete('/sessioni/{sessione}/periodi/{periodo}', [PeriodoInserimentoController::class, 'destroy'])
             ->name('periodi.destroy');
+
+        // Import CSV della struttura didattica
+        Route::get('/import', [ImportController::class, 'index'])->name('import.index');
+        Route::get('/import/template', [ImportController::class, 'template'])->name('import.template');
+        Route::post('/import', [ImportController::class, 'store'])->name('import.store');
 
         // Configurazione dei conflitti (riga unica)
         Route::get('/configurazione', [ConfigurazioneController::class, 'edit'])->name('configurazione.edit');
