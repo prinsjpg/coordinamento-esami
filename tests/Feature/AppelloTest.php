@@ -1,0 +1,171 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Appello;
+use App\Models\CorsoStudio;
+use App\Models\Insegnamento;
+use App\Models\Sessione;
+use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
+use Tests\TestCase;
+
+class AppelloTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private User $docente;
+    private Insegnamento $insegnamento;
+    private Sessione $sessione;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $this->docente = User::factory()->create();
+        $this->docente->assignRole('docente');
+
+        $corso = CorsoStudio::create(['nome' => 'Informatica']);
+        $this->insegnamento = Insegnamento::create([
+            'nome' => 'Programmazione',
+            'anno_frequenza' => 1,
+            'corso_studio_id' => $corso->id,
+        ]);
+        $this->docente->insegnamenti()->attach($this->insegnamento->id);
+
+        // Sessione con finestra di inserimento aperta (oggi è compreso)
+        $this->sessione = Sessione::create([
+            'nome' => 'Sessione Estiva',
+            'data_inizio' => Carbon::today(),
+            'data_fine' => Carbon::today()->addDays(30),
+        ]);
+        $this->sessione->periodiInserimento()->create([
+            'data_inizio' => Carbon::today()->subDays(2),
+            'data_fine' => Carbon::today()->addDays(2),
+        ]);
+    }
+
+    private function datiValidi(array $override = []): array
+    {
+        return array_merge([
+            'insegnamento_id' => $this->insegnamento->id,
+            'sessione_id' => $this->sessione->id,
+            'data' => Carbon::today()->addDays(5)->format('Y-m-d'),
+            'ora_inizio' => '09:00',
+            'ora_fine' => '11:00',
+            'aula' => 'Aula A1',
+        ], $override);
+    }
+
+    public function test_il_docente_crea_un_proprio_appello(): void
+    {
+        $response = $this->actingAs($this->docente)->post(route('appelli.store'), $this->datiValidi());
+
+        $response->assertRedirect(route('appelli.index'));
+        $this->assertDatabaseHas('appelli', [
+            'insegnamento_id' => $this->insegnamento->id,
+            'user_id' => $this->docente->id,
+            'aula' => 'Aula A1',
+        ]);
+    }
+
+    public function test_il_docente_non_puo_usare_un_insegnamento_non_suo(): void
+    {
+        $altroInsegnamento = Insegnamento::create([
+            'nome' => 'Analisi',
+            'anno_frequenza' => 1,
+            'corso_studio_id' => $this->insegnamento->corso_studio_id,
+        ]);
+
+        $response = $this->actingAs($this->docente)->post(route('appelli.store'), $this->datiValidi([
+            'insegnamento_id' => $altroInsegnamento->id,
+        ]));
+
+        $response->assertSessionHasErrors('insegnamento_id');
+        $this->assertDatabaseCount('appelli', 0);
+    }
+
+    public function test_la_data_fuori_dal_periodo_della_sessione_e_rifiutata(): void
+    {
+        $response = $this->actingAs($this->docente)->post(route('appelli.store'), $this->datiValidi([
+            'data' => Carbon::today()->addDays(60)->format('Y-m-d'),
+        ]));
+
+        $response->assertSessionHasErrors('data');
+        $this->assertDatabaseCount('appelli', 0);
+    }
+
+    public function test_il_docente_non_puo_inserire_se_la_finestra_e_chiusa(): void
+    {
+        $sessioneChiusa = Sessione::create([
+            'nome' => 'Sessione Invernale',
+            'data_inizio' => Carbon::today(),
+            'data_fine' => Carbon::today()->addDays(30),
+        ]);
+        $sessioneChiusa->periodiInserimento()->create([
+            'data_inizio' => Carbon::today()->subDays(20),
+            'data_fine' => Carbon::today()->subDays(10),
+        ]);
+
+        $response = $this->actingAs($this->docente)->post(route('appelli.store'), $this->datiValidi([
+            'sessione_id' => $sessioneChiusa->id,
+        ]));
+
+        $response->assertSessionHasErrors('sessione_id');
+        $this->assertDatabaseCount('appelli', 0);
+    }
+
+    public function test_il_docente_non_puo_modificare_l_appello_di_un_altro(): void
+    {
+        $altroDocente = User::factory()->create();
+        $altroDocente->assignRole('docente');
+
+        $appello = Appello::create($this->datiValidi(['user_id' => $altroDocente->id]));
+
+        $this->actingAs($this->docente)->get(route('appelli.edit', $appello))->assertForbidden();
+        $this->actingAs($this->docente)
+            ->put(route('appelli.update', $appello), $this->datiValidi())
+            ->assertForbidden();
+    }
+
+    public function test_il_docente_vede_solo_i_propri_appelli(): void
+    {
+        $altroDocente = User::factory()->create();
+        $altroDocente->assignRole('docente');
+
+        Appello::create($this->datiValidi(['user_id' => $this->docente->id, 'aula' => 'Mia']));
+        Appello::create($this->datiValidi(['user_id' => $altroDocente->id, 'aula' => 'Altrui']));
+
+        $response = $this->actingAs($this->docente)->get(route('appelli.index'));
+
+        $response->assertOk();
+        $response->assertSee('Mia');
+        $response->assertDontSee('Altrui');
+    }
+
+    public function test_l_admin_vede_tutti_gli_appelli_e_ignora_la_finestra(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('amministratore');
+
+        $sessioneChiusa = Sessione::create([
+            'nome' => 'Sessione Invernale',
+            'data_inizio' => Carbon::today(),
+            'data_fine' => Carbon::today()->addDays(30),
+        ]);
+        $sessioneChiusa->periodiInserimento()->create([
+            'data_inizio' => Carbon::today()->subDays(20),
+            'data_fine' => Carbon::today()->subDays(10),
+        ]);
+
+        // L'admin può inserire anche con finestra chiusa
+        $this->actingAs($admin)->post(route('appelli.store'), $this->datiValidi([
+            'sessione_id' => $sessioneChiusa->id,
+        ]))->assertRedirect(route('appelli.index'));
+
+        $this->assertDatabaseCount('appelli', 1);
+    }
+}
