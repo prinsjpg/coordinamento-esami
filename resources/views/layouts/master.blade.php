@@ -45,11 +45,54 @@
         </div>
     </footer>
 
+    {{-- Modal di conferma riutilizzabile per le eliminazioni --}}
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Conferma operazione</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+                </div>
+                <div class="modal-body" id="confirmModalBody">Confermi l'operazione?</div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-danger" id="confirmModalOk">Conferma</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- jQuery + Bootstrap 5.3 (JS con Popper incluso) --}}
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"
         integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+    {{-- Conferma le azioni distruttive tramite il modal Bootstrap --}}
+    <script>
+        $(function () {
+            const modalEl = document.getElementById('confirmModal');
+            const modal = new bootstrap.Modal(modalEl);
+            let pendingForm = null;
+
+            $(document).on('submit', 'form[data-confirm]', function (e) {
+                if ($(this).data('confirmed')) {
+                    return; // già confermato, lascia proseguire l'invio
+                }
+                e.preventDefault();
+                pendingForm = this;
+                $('#confirmModalBody').text($(this).data('confirm'));
+                modal.show();
+            });
+
+            $('#confirmModalOk').on('click', function () {
+                if (pendingForm) {
+                    $(pendingForm).data('confirmed', true).trigger('submit');
+                }
+                modal.hide();
+            });
+        });
+    </script>
 
     @stack('scripts')
 </body>
