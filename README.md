@@ -1,58 +1,85 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Sistema Web per il Coordinamento delle Date di Esame
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Applicazione web per la gestione e il coordinamento degli appelli d'esame di un
+dipartimento universitario. Permette all'amministratore di definire la struttura
+didattica (corsi, insegnamenti, sessioni) e ai docenti di pianificare i propri
+appelli, con verifica automatica dei conflitti tra esami dello stesso anno.
 
-## About Laravel
+Progetto per il corso di **Programmazione Web**.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Tecnologie
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- **PHP 8.3** e **Laravel 13**
+- **MySQL** (database `esami_coordinamento`)
+- **Laravel Jetstream** (Livewire) per autenticazione e profilo
+- **Spatie laravel-permission** per ruoli e permessi
+- **Bootstrap 5.3** + **jQuery** (via CDN) per l'interfaccia delle pagine applicative
+- Verifica conflitti in tempo reale tramite **jQuery/AJAX**
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Ruoli
 
-## Learning Laravel
+- **Amministratore**: gestisce la struttura didattica (corsi, insegnamenti,
+  sessioni, finestre di inserimento), l'import CSV, la configurazione dei
+  conflitti e vede tutti gli appelli.
+- **Docente**: crea, modifica ed elimina i propri appelli, scegliendo solo tra
+  gli insegnamenti a lui assegnati e all'interno delle finestre di inserimento.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Regola dei conflitti
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Due appelli sono in **conflitto** quando gli insegnamenti hanno lo **stesso anno
+di frequenza**, cadono nella **stessa data** e le **fasce orarie si
+sovrappongono**. La modalità di gestione è configurabile dall'amministratore:
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+- **Blocco**: impedisce il salvataggio dell'appello in conflitto.
+- **Avviso**: consente il salvataggio segnalando il conflitto.
 
-## Agentic Development
+La visibilità è differenziata: il docente vede solo data, anno e fascia occupati
+degli appelli altrui, mentre l'amministratore vede tutti i dettagli.
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Avvio in locale
+
+Requisiti: PHP 8.3, Composer, Node.js, MySQL.
 
 ```bash
-composer require laravel/boost --dev
+# 1. Dipendenze
+composer install
+npm install && npm run build
 
-php artisan boost:install
+# 2. Ambiente
+cp .env.example .env
+php artisan key:generate
+# configurare in .env: DB_DATABASE=esami_coordinamento, DB_USERNAME, DB_PASSWORD
+
+# 3. Database e dati di esempio
+php artisan migrate --seed
+
+# 4. Avvio
+php artisan serve
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+L'applicazione è raggiungibile su `http://127.0.0.1:8000`.
 
-## Contributing
+## Utenti di esempio (creati dal seeder)
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+| Ruolo          | Email                 | Password   |
+|----------------|-----------------------|------------|
+| Amministratore | admin@esami.test      | `password` |
+| Docente        | docente1@esami.test   | `password` |
+| Docente        | docente2@esami.test   | `password` |
 
-## Code of Conduct
+## Import CSV della struttura didattica
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Dalla sezione **Importa CSV** l'amministratore può caricare un file con le
+colonne `corso`, `insegnamento`, `anno_frequenza` e, facoltativa, `docenti`
+(email separate da `|`). Il separatore (virgola o punto e virgola) è rilevato
+automaticamente; in caso di errori non viene importato nulla. È disponibile un
+file CSV di esempio da scaricare.
 
-## Security Vulnerabilities
+## Test
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+php artisan test
+```
 
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+La suite copre autenticazione, gestione della struttura, import CSV, appelli,
+verifica dei conflitti e calendario.

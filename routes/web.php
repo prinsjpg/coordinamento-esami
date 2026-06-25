@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AppelloController;
+use App\Http\Controllers\CalendarioController;
 use App\Http\Controllers\ConfigurazioneController;
 use App\Http\Controllers\CorsoStudioController;
 use App\Http\Controllers\DashboardController;
@@ -12,7 +13,7 @@ use App\Http\Controllers\StrutturaController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('dashboard');
 });
 
 Route::middleware([
@@ -62,5 +63,8 @@ Route::middleware([
         Route::resource('appelli', AppelloController::class)
             ->parameters(['appelli' => 'appello'])
             ->except('show');
+
+        // Calendario degli appelli per sessione (visibilità per ruolo)
+        Route::get('/calendario', [CalendarioController::class, 'index'])->name('calendario.index');
     });
 });
