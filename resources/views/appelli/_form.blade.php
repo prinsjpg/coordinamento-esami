@@ -81,7 +81,67 @@
     </div>
 </div>
 
+{{-- Esito della verifica conflitti in tempo reale --}}
+<input type="hidden" id="appello_id" value="{{ $appello->id }}">
+<div id="avviso-conflitto" class="mt-3"></div>
+
 <div class="d-flex gap-2 mt-4">
     <button type="submit" class="btn btn-primary">Salva</button>
     <a href="{{ route('appelli.index') }}" class="btn btn-outline-secondary">Annulla</a>
 </div>
+
+@push('scripts')
+<script>
+    $(function () {
+        const url = "{{ route('appelli.verifica-conflitto') }}";
+        const $box = $('#avviso-conflitto');
+        const $campi = $('#insegnamento_id, #data, #ora_inizio, #ora_fine');
+
+        function verificaConflitto() {
+            const insegnamento = $('#insegnamento_id').val();
+            const data = $('#data').val();
+            const oraInizio = $('#ora_inizio').val();
+            const oraFine = $('#ora_fine').val();
+
+            // Serve tutto compilato e una fascia coerente
+            if (!insegnamento || !data || !oraInizio || !oraFine || oraFine <= oraInizio) {
+                $box.empty();
+                return;
+            }
+
+            $.getJSON(url, {
+                insegnamento_id: insegnamento,
+                data: data,
+                ora_inizio: oraInizio,
+                ora_fine: oraFine,
+                appello_id: $('#appello_id').val() || ''
+            }).done(function (res) {
+                if (!res.conflitto) {
+                    $box.html('<div class="alert alert-success mb-0 py-2"><i class="bi bi-check-circle"></i> Nessun conflitto rilevato.</div>');
+                    return;
+                }
+
+                const righe = res.dettagli.map(function (d) {
+                    return d.insegnamento
+                        ? '<li>' + d.insegnamento + ' — ' + d.docente + ' (' + d.orario + ')</li>'
+                        : '<li>' + d.anno + '° anno, fascia ' + d.orario + '</li>';
+                }).join('');
+
+                $box.html(
+                    '<div class="alert alert-warning mb-0">' +
+                    '<strong><i class="bi bi-exclamation-triangle"></i> Conflitto rilevato</strong> ' +
+                    'con ' + res.numero + ' appello/i dello stesso anno:' +
+                    '<ul class="mb-0 mt-1">' + righe + '</ul></div>'
+                );
+            }).fail(function () {
+                $box.empty();
+            });
+        }
+
+        $campi.on('change', verificaConflitto);
+
+        // Verifica anche allo apertura, se il form è già compilato (modifica)
+        verificaConflitto();
+    });
+</script>
+@endpush

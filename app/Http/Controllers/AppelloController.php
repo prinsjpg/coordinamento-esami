@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Appello;
+use App\Models\Configurazione;
 use App\Models\Insegnamento;
 use App\Models\Sessione;
+use App\Services\ConflittoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class AppelloController extends Controller
@@ -39,7 +42,7 @@ class AppelloController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, ConflittoService $conflitti)
     {
         $user = $request->user();
         $dati = $this->validateRequest($request, $user);
@@ -50,11 +53,21 @@ class AppelloController extends Controller
             return back()->withInput()->withErrors($errore);
         }
 
+        $trovati = $conflitti->trovaConflitti(
+            $dati['insegnamento_id'], $dati['data'], $dati['ora_inizio'], $dati['ora_fine']
+        );
+
+        if ($trovati->isNotEmpty() && $this->modalitaConflitto() === 'blocco') {
+            return back()->withInput()->withErrors(['conflitto' => $this->messaggioConflitto($trovati)]);
+        }
+
         $appello = new Appello($dati);
         $appello->user_id = $user->id;
         $appello->save();
 
-        return redirect()->route('appelli.index')->with('success', 'Appello creato.');
+        return redirect()->route('appelli.index')
+            ->with('success', 'Appello creato.')
+            ->with($trovati->isNotEmpty() ? ['warning' => $this->messaggioConflitto($trovati)] : []);
     }
 
     public function edit(Request $request, Appello $appello)
@@ -68,7 +81,7 @@ class AppelloController extends Controller
         ]);
     }
 
-    public function update(Request $request, Appello $appello)
+    public function update(Request $request, Appello $appello, ConflittoService $conflitti)
     {
         $user = $request->user();
         $this->autorizza($user, $appello);
@@ -80,9 +93,67 @@ class AppelloController extends Controller
             return back()->withInput()->withErrors($errore);
         }
 
+        $trovati = $conflitti->trovaConflitti(
+            $dati['insegnamento_id'], $dati['data'], $dati['ora_inizio'], $dati['ora_fine'], $appello->id
+        );
+
+        if ($trovati->isNotEmpty() && $this->modalitaConflitto() === 'blocco') {
+            return back()->withInput()->withErrors(['conflitto' => $this->messaggioConflitto($trovati)]);
+        }
+
         $appello->update($dati);
 
-        return redirect()->route('appelli.index')->with('success', 'Appello aggiornato.');
+        return redirect()->route('appelli.index')
+            ->with('success', 'Appello aggiornato.')
+            ->with($trovati->isNotEmpty() ? ['warning' => $this->messaggioConflitto($trovati)] : []);
+    }
+
+    /**
+     * Endpoint AJAX: verifica in tempo reale la presenza di conflitti.
+     */
+    public function verificaConflitto(Request $request, ConflittoService $conflitti)
+    {
+        $dati = $request->validate([
+            'insegnamento_id' => ['required', 'integer'],
+            'data' => ['required', 'date'],
+            'ora_inizio' => ['required', 'date_format:H:i'],
+            'ora_fine' => ['required', 'date_format:H:i', 'after:ora_inizio'],
+            'appello_id' => ['nullable', 'integer'],
+        ]);
+
+        $trovati = $conflitti->trovaConflitti(
+            (int) $dati['insegnamento_id'],
+            $dati['data'],
+            $dati['ora_inizio'],
+            $dati['ora_fine'],
+            isset($dati['appello_id']) ? (int) $dati['appello_id'] : null
+        );
+
+        // Visibilità differenziata: il docente vede solo anno e fascia occupati,
+        // l'amministratore vede anche insegnamento e docente.
+        $isAdmin = $request->user()->hasRole('amministratore');
+
+        $dettagli = $trovati->map(function (Appello $a) use ($isAdmin) {
+            $fascia = Str::substr($a->ora_inizio, 0, 5) . '–' . Str::substr($a->ora_fine, 0, 5);
+
+            return $isAdmin
+                ? [
+                    'anno' => $a->insegnamento->anno_frequenza,
+                    'orario' => $fascia,
+                    'insegnamento' => $a->insegnamento->nome,
+                    'docente' => $a->docente->name,
+                ]
+                : [
+                    'anno' => $a->insegnamento->anno_frequenza,
+                    'orario' => $fascia,
+                ];
+        })->values();
+
+        return response()->json([
+            'conflitto' => $trovati->isNotEmpty(),
+            'numero' => $trovati->count(),
+            'dettagli' => $dettagli,
+        ]);
     }
 
     public function destroy(Request $request, Appello $appello)
@@ -172,5 +243,26 @@ class AppelloController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Modalità di gestione dei conflitti impostata dall'amministratore.
+     */
+    private function modalitaConflitto(): string
+    {
+        return Configurazione::query()->value('modalita_conflitto') ?? 'blocco';
+    }
+
+    /**
+     * Messaggio riassuntivo dei conflitti rilevati.
+     *
+     * @param  \Illuminate\Support\Collection<int, Appello>  $conflitti
+     */
+    private function messaggioConflitto($conflitti): string
+    {
+        $anno = $conflitti->first()->insegnamento->anno_frequenza;
+
+        return "Conflitto con {$conflitti->count()} appello/i dello stesso anno ({$anno}°) "
+            . 'nella stessa data e fascia oraria.';
     }
 }

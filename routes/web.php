@@ -55,6 +55,10 @@ Route::middleware([
 
     // Gestione degli appelli: docenti (sui propri) e amministratore (su tutti)
     Route::middleware('role:docente|amministratore')->group(function () {
+        // Verifica conflitti in tempo reale (AJAX)
+        Route::get('/appelli/verifica-conflitto', [AppelloController::class, 'verificaConflitto'])
+            ->name('appelli.verifica-conflitto');
+
         Route::resource('appelli', AppelloController::class)
             ->parameters(['appelli' => 'appello'])
             ->except('show');
