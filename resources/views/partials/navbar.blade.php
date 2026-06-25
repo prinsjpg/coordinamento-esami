@@ -39,15 +39,13 @@
                     @endif
                 @endrole
 
-                {{-- Voci per i docenti --}}
-                @role('docente')
-                    @if (Route::has('appelli.index'))
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('appelli.*') ? 'active' : '' }}"
-                                href="{{ route('appelli.index') }}">I miei appelli</a>
-                        </li>
-                    @endif
-                @endrole
+                {{-- Appelli: i docenti gestiscono i propri, l'admin li vede tutti --}}
+                @if (Route::has('appelli.index'))
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('appelli.*') ? 'active' : '' }}"
+                            href="{{ route('appelli.index') }}">@role('docente') I miei appelli @else Appelli @endrole</a>
+                    </li>
+                @endif
 
                 {{-- Calendario: visibile a tutti gli utenti autenticati --}}
                 @if (Route::has('calendario.index'))

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AppelloController;
 use App\Http\Controllers\ConfigurazioneController;
 use App\Http\Controllers\CorsoStudioController;
 use App\Http\Controllers\DashboardController;
@@ -50,5 +51,12 @@ Route::middleware([
         // Configurazione dei conflitti (riga unica)
         Route::get('/configurazione', [ConfigurazioneController::class, 'edit'])->name('configurazione.edit');
         Route::put('/configurazione', [ConfigurazioneController::class, 'update'])->name('configurazione.update');
+    });
+
+    // Gestione degli appelli: docenti (sui propri) e amministratore (su tutti)
+    Route::middleware('role:docente|amministratore')->group(function () {
+        Route::resource('appelli', AppelloController::class)
+            ->parameters(['appelli' => 'appello'])
+            ->except('show');
     });
 });

@@ -1,0 +1,87 @@
+@php
+    use Illuminate\Support\Str;
+@endphp
+
+<div class="row g-3">
+    <div class="col-md-8">
+        <label for="insegnamento_id" class="form-label">Insegnamento</label>
+        <select class="form-select @error('insegnamento_id') is-invalid @enderror" id="insegnamento_id" name="insegnamento_id" required>
+            <option value="">— Seleziona un insegnamento —</option>
+            @foreach ($insegnamenti as $ins)
+                <option value="{{ $ins->id }}" @selected((int) old('insegnamento_id', $appello->insegnamento_id) === $ins->id)>
+                    {{ $ins->nome }} ({{ $ins->corsoStudio->nome }} — {{ $ins->anno_frequenza }}° anno)
+                </option>
+            @endforeach
+        </select>
+        @error('insegnamento_id')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+        @if ($insegnamenti->isEmpty())
+            <div class="form-text text-danger">Non hai insegnamenti assegnati: contatta l'amministratore.</div>
+        @endif
+    </div>
+
+    <div class="col-md-4">
+        <label for="sessione_id" class="form-label">Sessione</label>
+        <select class="form-select @error('sessione_id') is-invalid @enderror" id="sessione_id" name="sessione_id" required>
+            <option value="">— Seleziona —</option>
+            @foreach ($sessioni as $sessione)
+                <option value="{{ $sessione->id }}" @selected((int) old('sessione_id', $appello->sessione_id) === $sessione->id)>
+                    {{ $sessione->nome }}
+                </option>
+            @endforeach
+        </select>
+        @error('sessione_id')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+
+    <div class="col-md-4">
+        <label for="data" class="form-label">Data</label>
+        <input type="date" class="form-control @error('data') is-invalid @enderror" id="data" name="data"
+            value="{{ old('data', $appello->data?->format('Y-m-d')) }}" required>
+        @error('data')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+
+    <div class="col-md-4">
+        <label for="ora_inizio" class="form-label">Ora di inizio</label>
+        <input type="time" class="form-control @error('ora_inizio') is-invalid @enderror" id="ora_inizio" name="ora_inizio"
+            value="{{ old('ora_inizio', Str::substr((string) $appello->ora_inizio, 0, 5)) }}" required>
+        @error('ora_inizio')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+
+    <div class="col-md-4">
+        <label for="ora_fine" class="form-label">Ora di fine</label>
+        <input type="time" class="form-control @error('ora_fine') is-invalid @enderror" id="ora_fine" name="ora_fine"
+            value="{{ old('ora_fine', Str::substr((string) $appello->ora_fine, 0, 5)) }}" required>
+        @error('ora_fine')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+
+    <div class="col-md-6">
+        <label for="aula" class="form-label">Aula <span class="text-muted">(facoltativa)</span></label>
+        <input type="text" class="form-control @error('aula') is-invalid @enderror" id="aula" name="aula"
+            value="{{ old('aula', $appello->aula) }}">
+        @error('aula')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+
+    <div class="col-12">
+        <label for="note" class="form-label">Note <span class="text-muted">(facoltative)</span></label>
+        <textarea class="form-control @error('note') is-invalid @enderror" id="note" name="note" rows="2">{{ old('note', $appello->note) }}</textarea>
+        @error('note')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+</div>
+
+<div class="d-flex gap-2 mt-4">
+    <button type="submit" class="btn btn-primary">Salva</button>
+    <a href="{{ route('appelli.index') }}" class="btn btn-outline-secondary">Annulla</a>
+</div>
