@@ -169,6 +169,88 @@ class ConflittoTest extends TestCase
         $this->assertArrayHasKey('docente', $dettaglio);
     }
 
+    public function test_endpoint_rileva_conflitto_stessa_aula_anche_tra_corsi_diversi(): void
+    {
+        // Appello esistente di un altro corso e anno, ma in un'aula specifica
+        $altroCorso = CorsoStudio::create(['nome' => 'Matematica']);
+        $insAltro = Insegnamento::create(['nome' => 'Analisi II', 'anno_frequenza' => 1, 'corso_studio_id' => $altroCorso->id]);
+        Appello::create([
+            'insegnamento_id' => $insAltro->id,
+            'sessione_id' => $this->sessione->id,
+            'user_id' => $this->docente->id,
+            'data' => $this->giorno,
+            'ora_inizio' => '10:30',
+            'ora_fine' => '12:30',
+            'aula' => 'Aula Magna',
+        ]);
+
+        // Nuovo appello: corso e anno diversi (nessun conflitto studenti), ma
+        // stessa aula e fascia sovrapposta. Il confronto ignora spazi e maiuscole.
+        $response = $this->actingAs($this->docente)->getJson(route('appelli.verifica-conflitto', [
+            'insegnamento_id' => $this->insegnamentoC->id, // anno 1, corso Informatica
+            'data' => $this->giorno,
+            'ora_inizio' => '11:00',
+            'ora_fine' => '13:00',
+            'aula' => '  aula magna ',
+        ]));
+
+        $response->assertOk()->assertJson(['conflitto' => true, 'numero' => 1]);
+        $this->assertContains('aula', $response->json('dettagli.0.motivi'));
+    }
+
+    public function test_endpoint_nessun_conflitto_aula_diversa(): void
+    {
+        $altroCorso = CorsoStudio::create(['nome' => 'Matematica']);
+        $insAltro = Insegnamento::create(['nome' => 'Analisi II', 'anno_frequenza' => 1, 'corso_studio_id' => $altroCorso->id]);
+        Appello::create([
+            'insegnamento_id' => $insAltro->id,
+            'sessione_id' => $this->sessione->id,
+            'user_id' => $this->docente->id,
+            'data' => $this->giorno,
+            'ora_inizio' => '10:30',
+            'ora_fine' => '12:30',
+            'aula' => 'Aula Magna',
+        ]);
+
+        $response = $this->actingAs($this->docente)->getJson(route('appelli.verifica-conflitto', [
+            'insegnamento_id' => $this->insegnamentoC->id, // anno 1, altro corso/anno
+            'data' => $this->giorno,
+            'ora_inizio' => '11:00',
+            'ora_fine' => '13:00',
+            'aula' => 'Aula 7',
+        ]));
+
+        $response->assertOk()->assertJson(['conflitto' => false]);
+    }
+
+    public function test_modalita_blocco_impedisce_il_salvataggio_per_aula_occupata(): void
+    {
+        Configurazione::create(['modalita_conflitto' => 'blocco']);
+
+        $altroCorso = CorsoStudio::create(['nome' => 'Matematica']);
+        $insAltro = Insegnamento::create(['nome' => 'Geometria', 'anno_frequenza' => 1, 'corso_studio_id' => $altroCorso->id]);
+        $this->docente->insegnamenti()->attach($insAltro->id);
+        Appello::create([
+            'insegnamento_id' => $insAltro->id,
+            'sessione_id' => $this->sessione->id,
+            'user_id' => $this->docente->id,
+            'data' => $this->giorno,
+            'ora_inizio' => '10:30',
+            'ora_fine' => '12:30',
+            'aula' => 'Lab 1',
+        ]);
+
+        // insegnamentoC è di un altro corso/anno: nessun conflitto studenti,
+        // ma occupa la stessa aula nella stessa fascia.
+        $response = $this->actingAs($this->docente)->post(route('appelli.store'), $this->dati([
+            'insegnamento_id' => $this->insegnamentoC->id,
+            'aula' => 'Lab 1',
+        ]));
+
+        $response->assertSessionHasErrors('conflitto');
+        $this->assertDatabaseMissing('appelli', ['insegnamento_id' => $this->insegnamentoC->id]);
+    }
+
     public function test_modalita_blocco_impedisce_il_salvataggio_in_conflitto(): void
     {
         Configurazione::create(['modalita_conflitto' => 'blocco']);

@@ -58,12 +58,15 @@ class AppelloController extends Controller
             return back()->withInput()->withErrors($errore);
         }
 
+        $insegnamento = Insegnamento::with('corsoStudio')->findOrFail($dati['insegnamento_id']);
+        $aula = $dati['aula'] ?? null;
+
         $trovati = $conflitti->trovaConflitti(
-            $dati['insegnamento_id'], $dati['data'], $dati['ora_inizio'], $dati['ora_fine']
+            $insegnamento->id, $dati['data'], $dati['ora_inizio'], $dati['ora_fine'], $aula
         );
 
         if ($trovati->isNotEmpty() && $this->modalitaConflitto() === 'blocco') {
-            return back()->withInput()->withErrors(['conflitto' => $this->messaggioConflitto($trovati)]);
+            return back()->withInput()->withErrors(['conflitto' => $this->messaggioConflitto($trovati, $insegnamento, $aula)]);
         }
 
         $appello = new Appello($dati);
@@ -72,7 +75,7 @@ class AppelloController extends Controller
 
         return redirect()->route('appelli.index')
             ->with('success', 'Appello creato.')
-            ->with($trovati->isNotEmpty() ? ['warning' => $this->messaggioConflitto($trovati)] : []);
+            ->with($trovati->isNotEmpty() ? ['warning' => $this->messaggioConflitto($trovati, $insegnamento, $aula)] : []);
     }
 
     public function edit(Request $request, Appello $appello)
@@ -103,19 +106,22 @@ class AppelloController extends Controller
             return back()->withInput()->withErrors($errore);
         }
 
+        $insegnamento = Insegnamento::with('corsoStudio')->findOrFail($dati['insegnamento_id']);
+        $aula = $dati['aula'] ?? null;
+
         $trovati = $conflitti->trovaConflitti(
-            $dati['insegnamento_id'], $dati['data'], $dati['ora_inizio'], $dati['ora_fine'], $appello->id
+            $insegnamento->id, $dati['data'], $dati['ora_inizio'], $dati['ora_fine'], $aula, $appello->id
         );
 
         if ($trovati->isNotEmpty() && $this->modalitaConflitto() === 'blocco') {
-            return back()->withInput()->withErrors(['conflitto' => $this->messaggioConflitto($trovati)]);
+            return back()->withInput()->withErrors(['conflitto' => $this->messaggioConflitto($trovati, $insegnamento, $aula)]);
         }
 
         $appello->update($dati);
 
         return redirect()->route('appelli.index')
             ->with('success', 'Appello aggiornato.')
-            ->with($trovati->isNotEmpty() ? ['warning' => $this->messaggioConflitto($trovati)] : []);
+            ->with($trovati->isNotEmpty() ? ['warning' => $this->messaggioConflitto($trovati, $insegnamento, $aula)] : []);
     }
 
     /**
@@ -128,35 +134,47 @@ class AppelloController extends Controller
             'data' => ['required', 'date'],
             'ora_inizio' => ['required', 'date_format:H:i'],
             'ora_fine' => ['required', 'date_format:H:i', 'after:ora_inizio'],
+            'aula' => ['nullable', 'string', 'max:255'],
             'appello_id' => ['nullable', 'integer'],
         ]);
 
+        $insegnamento = Insegnamento::with('corsoStudio')->find($dati['insegnamento_id']);
+
+        if ($insegnamento === null) {
+            return response()->json(['conflitto' => false, 'numero' => 0, 'dettagli' => []]);
+        }
+
+        $aula = $dati['aula'] ?? null;
+
         $trovati = $conflitti->trovaConflitti(
-            (int) $dati['insegnamento_id'],
+            $insegnamento->id,
             $dati['data'],
             $dati['ora_inizio'],
             $dati['ora_fine'],
+            $aula,
             isset($dati['appello_id']) ? (int) $dati['appello_id'] : null
         );
 
-        // Visibilità differenziata: il docente vede solo anno e fascia occupati,
-        // l'amministratore vede anche insegnamento e docente.
+        // Visibilità differenziata: il docente vede solo anno, fascia e motivo,
+        // l'amministratore vede anche insegnamento, docente e aula.
         $isAdmin = $request->user()->hasRole('amministratore');
 
-        $dettagli = $trovati->map(function (Appello $a) use ($isAdmin) {
+        $dettagli = $trovati->map(function (Appello $a) use ($isAdmin, $insegnamento, $aula) {
             $fascia = Str::substr($a->ora_inizio, 0, 5) . '–' . Str::substr($a->ora_fine, 0, 5);
 
-            return $isAdmin
-                ? [
-                    'anno' => $a->insegnamento->anno_frequenza,
-                    'orario' => $fascia,
-                    'insegnamento' => $a->insegnamento->nome,
-                    'docente' => $a->docente->name,
-                ]
-                : [
-                    'anno' => $a->insegnamento->anno_frequenza,
-                    'orario' => $fascia,
-                ];
+            $dettaglio = [
+                'anno' => $a->insegnamento->anno_frequenza,
+                'orario' => $fascia,
+                'motivi' => $this->motiviConflitto($a, $insegnamento, $aula),
+            ];
+
+            if ($isAdmin) {
+                $dettaglio['insegnamento'] = $a->insegnamento->nome;
+                $dettaglio['docente'] = $a->docente->name;
+                $dettaglio['aula'] = $a->aula;
+            }
+
+            return $dettaglio;
         })->values();
 
         return response()->json([
@@ -285,17 +303,54 @@ class AppelloController extends Controller
     }
 
     /**
-     * Messaggio riassuntivo dei conflitti rilevati.
+     * Determina per quali motivi un appello esistente è in conflitto con quello
+     * che si sta inserendo: "studenti" (stesso corso e anno) e/o "aula".
+     *
+     * @return array<int, string>
+     */
+    private function motiviConflitto(Appello $altro, Insegnamento $nuovo, ?string $aula): array
+    {
+        $motivi = [];
+
+        if ((int) $altro->insegnamento->anno_frequenza === (int) $nuovo->anno_frequenza
+            && (int) $altro->insegnamento->corso_studio_id === (int) $nuovo->corso_studio_id) {
+            $motivi[] = 'studenti';
+        }
+
+        if ($aula !== null && trim($aula) !== ''
+            && mb_strtolower(trim((string) $altro->aula)) === mb_strtolower(trim($aula))) {
+            $motivi[] = 'aula';
+        }
+
+        return $motivi;
+    }
+
+    /**
+     * Messaggio riassuntivo dei conflitti rilevati, distinguendo tra conflitto
+     * sugli studenti (stesso corso e anno) e conflitto sull'aula.
      *
      * @param  \Illuminate\Support\Collection<int, Appello>  $conflitti
      */
-    private function messaggioConflitto($conflitti): string
+    private function messaggioConflitto($conflitti, Insegnamento $insegnamento, ?string $aula): string
     {
-        $insegnamento = $conflitti->first()->insegnamento;
-        $anno = $insegnamento->anno_frequenza;
-        $corso = $insegnamento->corsoStudio->nome;
+        $studenti = $conflitti->filter(
+            fn (Appello $a) => in_array('studenti', $this->motiviConflitto($a, $insegnamento, $aula), true)
+        );
+        $perAula = $conflitti->filter(
+            fn (Appello $a) => in_array('aula', $this->motiviConflitto($a, $insegnamento, $aula), true)
+        );
 
-        return "Conflitto con {$conflitti->count()} appello/i dello stesso anno ({$anno}°) "
-            . "del corso «{$corso}» nella stessa data e fascia oraria.";
+        $parti = [];
+
+        if ($studenti->isNotEmpty()) {
+            $parti[] = "{$studenti->count()} appello/i dello stesso anno ({$insegnamento->anno_frequenza}°) "
+                . "del corso «{$insegnamento->corsoStudio->nome}»";
+        }
+
+        if ($perAula->isNotEmpty()) {
+            $parti[] = "{$perAula->count()} appello/i nella stessa aula («" . trim((string) $aula) . "»)";
+        }
+
+        return 'Conflitto con ' . implode(' e con ', $parti) . ' nella stessa data e fascia oraria.';
     }
 }
