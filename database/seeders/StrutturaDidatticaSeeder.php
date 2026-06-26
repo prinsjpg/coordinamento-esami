@@ -83,7 +83,8 @@ class StrutturaDidatticaSeeder extends Seeder
         }
         $giornoEsame = $giorno->format('Y-m-d');
 
-        // Appello senza conflitti (1° anno)
+        // Appello di 1° anno (Informatica): condivide l'Aula A1 con Analisi
+        // Matematica, generando un conflitto di sola aula (vedi più sotto).
         Appello::create([
             'insegnamento_id' => $programmazione->id,
             'sessione_id' => $sessione->id,
@@ -129,6 +130,20 @@ class StrutturaDidatticaSeeder extends Seeder
             'ora_fine' => '13:00',
             'aula' => 'Aula M1',
             'note' => 'Stesso anno di Basi di Dati/Algoritmi ma corso diverso: nessun conflitto',
+        ]);
+
+        // Conflitto di sola aula: corso e anno diversi da Programmazione
+        // (nessuna sovrapposizione di studenti), ma stessa Aula A1 nella stessa
+        // fascia oraria, quindi l'aula risulterebbe occupata due volte.
+        Appello::create([
+            'insegnamento_id' => $analisi->id,
+            'sessione_id' => $sessione->id,
+            'user_id' => $docente2->id,
+            'data' => $giornoEsame,
+            'ora_inizio' => '10:00',
+            'ora_fine' => '12:00',
+            'aula' => 'Aula A1',
+            'note' => 'Stessa aula di Programmazione ma corso diverso: conflitto solo di aula',
         ]);
 
         // Impostazioni: modalità di gestione dei conflitti

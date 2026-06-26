@@ -30,7 +30,7 @@
 
     @unless ($isAdmin)
         <p class="text-muted small">
-            <i class="bi bi-info-circle"></i> Degli appelli altrui sono visibili solo data, anno e fascia oraria occupati.
+            <i class="bi bi-info-circle"></i> Degli appelli altrui sono visibili solo data, corso, anno e fascia oraria occupati.
         </p>
     @endunless
 
@@ -50,6 +50,7 @@
                             <tr>
                                 <th style="width: 8rem;">Orario</th>
                                 <th class="text-center" style="width: 6rem;">Anno</th>
+                                <th>Corso</th>
                                 <th>Insegnamento</th>
                                 <th>Docente</th>
                                 <th>Aula</th>
@@ -61,6 +62,7 @@
                                 <tr class="{{ $visibile ? '' : 'text-muted' }}">
                                     <td>{{ \Illuminate\Support\Str::substr($appello->ora_inizio, 0, 5) }}&ndash;{{ \Illuminate\Support\Str::substr($appello->ora_fine, 0, 5) }}</td>
                                     <td class="text-center">{{ $appello->insegnamento->anno_frequenza }}°</td>
+                                    <td>{{ $appello->insegnamento->corsoStudio->nome }}</td>
                                     @if ($visibile)
                                         <td>
                                             {{ $appello->insegnamento->nome }}

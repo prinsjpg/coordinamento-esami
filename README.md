@@ -3,7 +3,7 @@
 Applicazione web per la gestione e il coordinamento degli appelli d'esame di un
 dipartimento universitario. Permette all'amministratore di definire la struttura
 didattica (corsi, insegnamenti, sessioni) e ai docenti di pianificare i propri
-appelli, con verifica automatica dei conflitti tra esami dello stesso anno.
+appelli, con verifica automatica dei conflitti (stesso corso/anno o stessa aula).
 
 Progetto per il corso di **Programmazione Web**.
 
@@ -26,10 +26,15 @@ Progetto per il corso di **Programmazione Web**.
 
 ## Regola dei conflitti
 
-Due appelli sono in **conflitto** quando gli insegnamenti appartengono allo
-**stesso corso di studio** e allo **stesso anno di frequenza**, cadono nella
-**stessa data** e le **fasce orarie si sovrappongono** (gli studenti coinvolti
-sono gli stessi). La modalità di gestione è configurabile dall'amministratore:
+Due appelli sono in **conflitto** quando cadono nella **stessa data**, le
+**fasce orarie si sovrappongono** e si verifica almeno una di queste condizioni:
+
+- **conflitto studenti**: gli insegnamenti appartengono allo **stesso corso di
+  studio** e allo **stesso anno di frequenza** (gli studenti coinvolti sono gli stessi);
+- **conflitto aula**: la **stessa aula** risulterebbe occupata due volte (il
+  confronto ignora spazi e maiuscole).
+
+La modalità di gestione è configurabile dall'amministratore:
 
 - **Blocco**: impedisce il salvataggio dell'appello in conflitto.
 - **Avviso**: consente il salvataggio segnalando il conflitto.

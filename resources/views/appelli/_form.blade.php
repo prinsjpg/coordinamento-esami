@@ -96,7 +96,14 @@
     $(function () {
         const url = "{{ route('appelli.verifica-conflitto') }}";
         const $box = $('#avviso-conflitto');
-        const $campi = $('#insegnamento_id, #data, #ora_inizio, #ora_fine');
+        const $campi = $('#insegnamento_id, #data, #ora_inizio, #ora_fine, #aula');
+
+        function etichettaMotivi(motivi) {
+            const m = [];
+            if (motivi && motivi.indexOf('studenti') !== -1) m.push('stesso corso e anno');
+            if (motivi && motivi.indexOf('aula') !== -1) m.push('stessa aula');
+            return m.length ? ' <span class="text-muted">[' + m.join(', ') + ']</span>' : '';
+        }
 
         function verificaConflitto() {
             const insegnamento = $('#insegnamento_id').val();
@@ -115,6 +122,7 @@
                 data: data,
                 ora_inizio: oraInizio,
                 ora_fine: oraFine,
+                aula: $('#aula').val() || '',
                 appello_id: $('#appello_id').val() || ''
             }).done(function (res) {
                 if (!res.conflitto) {
@@ -123,15 +131,16 @@
                 }
 
                 const righe = res.dettagli.map(function (d) {
+                    const motivo = etichettaMotivi(d.motivi);
                     return d.insegnamento
-                        ? '<li>' + d.insegnamento + ' — ' + d.docente + ' (' + d.orario + ')</li>'
-                        : '<li>' + d.anno + '° anno, fascia ' + d.orario + '</li>';
+                        ? '<li>' + d.insegnamento + ' — ' + d.docente + ' (' + d.orario + ')' + motivo + '</li>'
+                        : '<li>' + d.anno + '° anno, fascia ' + d.orario + motivo + '</li>';
                 }).join('');
 
                 $box.html(
                     '<div class="alert alert-warning mb-0">' +
                     '<strong><i class="bi bi-exclamation-triangle"></i> Conflitto rilevato</strong> ' +
-                    'con ' + res.numero + ' appello/i dello stesso anno:' +
+                    'con ' + res.numero + ' appello/i nella stessa data e fascia oraria:' +
                     '<ul class="mb-0 mt-1">' + righe + '</ul></div>'
                 );
             }).fail(function () {
