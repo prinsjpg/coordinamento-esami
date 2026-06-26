@@ -251,6 +251,24 @@ class ConflittoTest extends TestCase
         $this->assertDatabaseMissing('appelli', ['insegnamento_id' => $this->insegnamentoC->id]);
     }
 
+    public function test_il_docente_non_puo_verificare_un_insegnamento_non_suo(): void
+    {
+        $altroCorso = CorsoStudio::create(['nome' => 'Fisica']);
+        $insNonSuo = Insegnamento::create([
+            'nome' => 'Meccanica', 'anno_frequenza' => 1, 'corso_studio_id' => $altroCorso->id,
+        ]);
+        // Volutamente NON assegnato al docente
+
+        $response = $this->actingAs($this->docente)->getJson(route('appelli.verifica-conflitto', [
+            'insegnamento_id' => $insNonSuo->id,
+            'data' => $this->giorno,
+            'ora_inizio' => '11:00',
+            'ora_fine' => '13:00',
+        ]));
+
+        $response->assertStatus(422);
+    }
+
     public function test_modalita_blocco_impedisce_il_salvataggio_in_conflitto(): void
     {
         Configurazione::create(['modalita_conflitto' => 'blocco']);

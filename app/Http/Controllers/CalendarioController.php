@@ -36,12 +36,19 @@ class CalendarioController extends Controller
                 ->groupBy(fn (Appello $a) => $a->data->format('Y-m-d'));
         }
 
+        // Insegnamenti del docente: gli appelli ad essi collegati (anche di un
+        // co-titolare) sono visibili in dettaglio, come i propri.
+        $insegnamentiIds = $isAdmin
+            ? collect()
+            : $user->insegnamenti()->pluck('insegnamenti.id');
+
         return view('calendario.index', [
             'sessioni' => $sessioni,
             'sessioneSelezionata' => $sessioneSelezionata,
             'perData' => $perData,
             'isAdmin' => $isAdmin,
             'userId' => $user->id,
+            'insegnamentiIds' => $insegnamentiIds,
         ]);
     }
 }

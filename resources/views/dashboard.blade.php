@@ -43,6 +43,50 @@
             </div>
         </div>
 
+        {{-- Monitoraggio scadenze: insegnamenti senza appello con finestra in scadenza o chiusa --}}
+        @if ($segnalazioni->isNotEmpty())
+            <div class="card border-warning mb-4">
+                <div class="card-header fw-semibold bg-warning-subtle text-warning-emphasis">
+                    <i class="bi bi-exclamation-triangle"></i> Monitoraggio scadenze — appelli mancanti
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted mb-3">
+                        Insegnamenti ancora privi di appello in sessioni la cui finestra di inserimento è in scadenza o già chiusa.
+                    </p>
+                    @foreach ($segnalazioni as $seg)
+                        @php
+                            $badge = $seg['stato'] === 'chiusa'
+                                ? ['danger', 'finestra chiusa']
+                                : ['warning', 'finestra in scadenza'];
+                            $scadenza = $seg['sessione']->periodiInserimento->max('data_fine');
+                        @endphp
+                        <div class="mb-3">
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                <strong>{{ $seg['sessione']->nome }}</strong>
+                                <span class="badge text-bg-{{ $badge[0] }}">{{ $badge[1] }}</span>
+                                @if ($scadenza)
+                                    <span class="text-muted small">inserimento entro il {{ $scadenza->format('d/m/Y') }}</span>
+                                @endif
+                            </div>
+                            <ul class="mb-0">
+                                @foreach ($seg['insegnamenti'] as $ins)
+                                    <li>
+                                        {{ $ins->nome }}
+                                        <span class="text-muted">({{ $ins->corsoStudio->nome }}, {{ $ins->anno_frequenza }}° anno)</span>
+                                        @if ($ins->docenti->isNotEmpty())
+                                            — <span class="text-muted small">{{ $ins->docenti->pluck('name')->join(', ') }}</span>
+                                        @else
+                                            — <span class="badge text-bg-secondary">nessun docente associato</span>
+                                        @endif
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         <div class="card">
             <div class="card-header fw-semibold">Prossimi appelli</div>
             <div class="card-body p-0">
@@ -83,6 +127,51 @@
         <div class="alert alert-info">
             Benvenuto, <strong>{{ Auth::user()->name }}</strong>. Da qui puoi gestire i tuoi appelli d'esame.
         </div>
+
+        {{-- Promemoria: insegnamenti del docente ancora senza appello nelle sessioni attive --}}
+        @if ($daCompletare->isNotEmpty())
+            <div class="card border-warning mb-4">
+                <div class="card-header fw-semibold bg-warning-subtle text-warning-emphasis">
+                    <i class="bi bi-exclamation-triangle"></i> Insegnamenti da pianificare
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted mb-3">
+                        Questi tuoi insegnamenti non hanno ancora un appello nella sessione indicata.
+                    </p>
+                    @foreach ($daCompletare as $seg)
+                        @php
+                            $mappa = [
+                                'aperta' => ['secondary', 'inserimento aperto'],
+                                'in_scadenza' => ['warning', 'in scadenza'],
+                                'chiusa' => ['danger', 'finestra chiusa'],
+                            ];
+                            $badge = $mappa[$seg['stato']];
+                            $scadenza = $seg['sessione']->periodiInserimento->max('data_fine');
+                        @endphp
+                        <div class="mb-3">
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                <strong>{{ $seg['sessione']->nome }}</strong>
+                                <span class="badge text-bg-{{ $badge[0] }}">{{ $badge[1] }}</span>
+                                @if ($scadenza)
+                                    <span class="text-muted small">inserimento entro il {{ $scadenza->format('d/m/Y') }}</span>
+                                @endif
+                            </div>
+                            <ul class="mb-0">
+                                @foreach ($seg['insegnamenti'] as $ins)
+                                    <li>
+                                        {{ $ins->nome }}
+                                        <span class="text-muted">({{ $ins->corsoStudio->nome }}, {{ $ins->anno_frequenza }}° anno)</span>
+                                        @if ($seg['stato'] !== 'chiusa')
+                                            <a href="{{ route('appelli.create') }}" class="ms-1">crea appello</a>
+                                        @endif
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
 
         <div class="row g-4">
             <div class="col-lg-6">

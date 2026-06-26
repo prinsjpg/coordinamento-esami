@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -44,5 +45,17 @@ class Appello extends Model
     public function docente(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
+     * Appelli "propri" di un docente: quelli relativi ai suoi insegnamenti
+     * (anche se creati da un co-titolare) oppure creati da lui.
+     */
+    public function scopeVisibiliAlDocente(Builder $query, User $docente): Builder
+    {
+        return $query->where(function (Builder $q) use ($docente) {
+            $q->whereHas('insegnamento.docenti', fn (Builder $d) => $d->whereKey($docente->id))
+                ->orWhere('user_id', $docente->id);
+        });
     }
 }

@@ -34,6 +34,9 @@
         @error('sessione_id')
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
+        @if ($sessioni->isEmpty())
+            <div class="form-text text-danger">Nessuna sessione con finestra di inserimento aperta al momento.</div>
+        @endif
     </div>
 
     <div class="col-md-4">
