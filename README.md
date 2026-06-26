@@ -39,8 +39,18 @@ La modalità di gestione è configurabile dall'amministratore:
 - **Blocco**: impedisce il salvataggio dell'appello in conflitto.
 - **Avviso**: consente il salvataggio segnalando il conflitto.
 
-La visibilità è differenziata: il docente vede solo data, anno e fascia occupati
-degli appelli altrui, mentre l'amministratore vede tutti i dettagli.
+La visibilità è differenziata: il docente vede solo data, corso, anno e fascia
+occupati degli appelli altrui, mentre l'amministratore vede tutti i dettagli.
+
+## Monitoraggio delle scadenze
+
+La dashboard segnala gli insegnamenti ancora **privi di appello** in base allo
+stato della finestra di inserimento della sessione:
+
+- l'**amministratore** vede gli insegnamenti senza appello nelle sessioni con
+  finestra **in scadenza** (entro 7 giorni) o **già chiusa**;
+- il **docente** vede i propri insegnamenti da pianificare finché la finestra è
+  aperta, in scadenza o appena chiusa.
 
 ## Avvio in locale
 

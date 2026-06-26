@@ -6,6 +6,7 @@ use App\Models\Appello;
 use App\Models\CorsoStudio;
 use App\Models\Insegnamento;
 use App\Models\Sessione;
+use App\Services\MonitoraggioService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
@@ -14,7 +15,7 @@ class DashboardController extends Controller
     /**
      * Mostra la dashboard, con contenuti differenziati in base al ruolo.
      */
-    public function index(Request $request)
+    public function index(Request $request, MonitoraggioService $monitoraggio)
     {
         $user = $request->user();
 
@@ -38,6 +39,7 @@ class DashboardController extends Controller
                 'ruolo' => 'amministratore',
                 'stats' => $stats,
                 'prossimiAppelli' => $prossimiAppelli,
+                'segnalazioni' => $monitoraggio->segnalazioniAdmin(),
             ]);
         }
 
@@ -56,6 +58,7 @@ class DashboardController extends Controller
             'ruolo' => 'docente',
             'insegnamenti' => $insegnamenti,
             'mieiAppelli' => $mieiAppelli,
+            'daCompletare' => $monitoraggio->segnalazioniDocente($user),
         ]);
     }
 }

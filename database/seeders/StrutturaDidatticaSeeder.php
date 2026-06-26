@@ -58,12 +58,20 @@ class StrutturaDidatticaSeeder extends Seeder
             'anno_frequenza' => 2,
             'corso_studio_id' => $matematica->id,
         ]);
+        // Insegnamento volutamente senza appello: serve a mostrare il monitoraggio
+        // delle scadenze (compare tra gli "appelli mancanti" finché manca l'appello).
+        $reti = Insegnamento::create([
+            'nome' => 'Reti di Calcolatori',
+            'anno_frequenza' => 3,
+            'corso_studio_id' => $informatica->id,
+        ]);
 
         // Associazione docenti <-> insegnamenti
-        $docente1->insegnamenti()->attach([$programmazione->id, $basiDati->id]);
+        $docente1->insegnamenti()->attach([$programmazione->id, $basiDati->id, $reti->id]);
         $docente2->insegnamenti()->attach([$algoritmi->id, $analisi->id, $algebra->id]);
 
-        // Sessione e finestra di inserimento (la data odierna rientra nella finestra)
+        // Sessione e finestra di inserimento. La finestra chiude tra pochi giorni,
+        // così il monitoraggio mostra lo stato "in scadenza".
         $sessione = Sessione::create([
             'nome' => 'Sessione Estiva',
             'data_inizio' => Carbon::today()->subDays(10),
@@ -71,8 +79,8 @@ class StrutturaDidatticaSeeder extends Seeder
         ]);
         PeriodoInserimento::create([
             'sessione_id' => $sessione->id,
-            'data_inizio' => Carbon::today()->subDays(5),
-            'data_fine' => Carbon::today()->addDays(15),
+            'data_inizio' => Carbon::today()->subDays(3),
+            'data_fine' => Carbon::today()->addDays(5),
         ]);
 
         // Appelli di esempio: si parte da oggi + 20 giorni, spostandosi al primo
