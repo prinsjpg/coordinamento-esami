@@ -66,6 +66,20 @@ class CalendarioTest extends TestCase
         $response->assertDontSee('Luigi Bianchi'); // docente altrui nascosto
     }
 
+    public function test_il_co_titolare_vede_i_dettagli_dell_appello_condiviso(): void
+    {
+        // docente1 diventa co-titolare di Algoritmi (l'insegnamento di docente2)
+        $insB = Insegnamento::where('nome', 'Algoritmi')->firstOrFail();
+        $this->docente1->insegnamenti()->attach($insB->id);
+
+        $response = $this->actingAs($this->docente1)
+            ->get(route('calendario.index', ['sessione' => $this->sessione->id]));
+
+        $response->assertOk();
+        $response->assertSee('Algoritmi');       // ora visibile: insegnamento condiviso
+        $response->assertSee('Luigi Bianchi');   // docente dell'appello condiviso
+    }
+
     public function test_l_admin_vede_tutti_i_dettagli(): void
     {
         $admin = User::factory()->create();

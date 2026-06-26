@@ -130,12 +130,23 @@ class AppelloTest extends TestCase
         $this->assertDatabaseCount('appelli', 0);
     }
 
-    public function test_il_docente_non_puo_modificare_l_appello_di_un_altro(): void
+    public function test_il_docente_non_puo_gestire_l_appello_di_un_insegnamento_non_suo(): void
     {
         $altroDocente = User::factory()->create();
         $altroDocente->assignRole('docente');
 
-        $appello = Appello::create($this->datiValidi(['user_id' => $altroDocente->id]));
+        // Insegnamento NON assegnato al docente che agisce
+        $altroInsegnamento = Insegnamento::create([
+            'nome' => 'Analisi',
+            'anno_frequenza' => 1,
+            'corso_studio_id' => $this->insegnamento->corso_studio_id,
+        ]);
+        $altroDocente->insegnamenti()->attach($altroInsegnamento->id);
+
+        $appello = Appello::create($this->datiValidi([
+            'user_id' => $altroDocente->id,
+            'insegnamento_id' => $altroInsegnamento->id,
+        ]));
 
         $this->actingAs($this->docente)->get(route('appelli.edit', $appello))->assertForbidden();
         $this->actingAs($this->docente)
@@ -143,19 +154,48 @@ class AppelloTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_il_docente_vede_solo_i_propri_appelli(): void
+    public function test_il_docente_vede_i_propri_appelli_ma_non_quelli_di_insegnamenti_altrui(): void
     {
         $altroDocente = User::factory()->create();
         $altroDocente->assignRole('docente');
 
+        // Insegnamento non assegnato al docente che agisce
+        $altroInsegnamento = Insegnamento::create([
+            'nome' => 'Analisi',
+            'anno_frequenza' => 1,
+            'corso_studio_id' => $this->insegnamento->corso_studio_id,
+        ]);
+
         Appello::create($this->datiValidi(['user_id' => $this->docente->id, 'aula' => 'Mia']));
-        Appello::create($this->datiValidi(['user_id' => $altroDocente->id, 'aula' => 'Altrui']));
+        Appello::create($this->datiValidi([
+            'user_id' => $altroDocente->id,
+            'insegnamento_id' => $altroInsegnamento->id,
+            'aula' => 'Altrui',
+        ]));
 
         $response = $this->actingAs($this->docente)->get(route('appelli.index'));
 
         $response->assertOk();
         $response->assertSee('Mia');
         $response->assertDontSee('Altrui');
+    }
+
+    public function test_il_docente_gestisce_gli_appelli_dei_co_titolari(): void
+    {
+        $coTitolare = User::factory()->create();
+        $coTitolare->assignRole('docente');
+        // Entrambi titolari dello stesso insegnamento
+        $coTitolare->insegnamenti()->attach($this->insegnamento->id);
+
+        // Appello creato dal co-titolare sull'insegnamento condiviso
+        $appello = Appello::create($this->datiValidi([
+            'user_id' => $coTitolare->id,
+            'aula' => 'Condivisa',
+        ]));
+
+        // Il docente lo vede in elenco e può aprirne la modifica
+        $this->actingAs($this->docente)->get(route('appelli.index'))->assertSee('Condivisa');
+        $this->actingAs($this->docente)->get(route('appelli.edit', $appello))->assertOk();
     }
 
     public function test_non_si_puo_fissare_un_appello_in_una_data_passata(): void

@@ -21,8 +21,9 @@ Progetto per il corso di **Programmazione Web**.
 - **Amministratore**: gestisce la struttura didattica (corsi, insegnamenti,
   sessioni, finestre di inserimento), l'import CSV, la configurazione dei
   conflitti e vede tutti gli appelli.
-- **Docente**: crea, modifica ed elimina i propri appelli, scegliendo solo tra
-  gli insegnamenti a lui assegnati e all'interno delle finestre di inserimento.
+- **Docente**: crea, modifica ed elimina gli appelli dei propri insegnamenti
+  (anche quando condivisi con un co-titolare), scegliendo solo tra gli
+  insegnamenti a lui assegnati e all'interno delle finestre di inserimento.
 
 ## Regola dei conflitti
 

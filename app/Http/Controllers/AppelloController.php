@@ -19,12 +19,14 @@ class AppelloController extends Controller
     {
         $user = $request->user();
 
-        // L'amministratore vede tutti gli appelli, il docente solo i propri
+        // L'amministratore vede tutti gli appelli, il docente quelli dei propri
+        // insegnamenti (compresi quelli inseriti da un co-titolare).
         if ($user->hasRole('amministratore')) {
             $appelli = Appello::with(['insegnamento.corsoStudio', 'sessione', 'docente'])
                 ->orderBy('data')->orderBy('ora_inizio')->get();
         } else {
-            $appelli = $user->appelli()->with(['insegnamento.corsoStudio', 'sessione'])
+            $appelli = Appello::with(['insegnamento.corsoStudio', 'sessione', 'docente'])
+                ->visibiliAlDocente($user)
                 ->orderBy('data')->orderBy('ora_inizio')->get();
         }
 
@@ -129,8 +131,12 @@ class AppelloController extends Controller
      */
     public function verificaConflitto(Request $request, ConflittoService $conflitti)
     {
+        // Solo gli insegnamenti consentiti all'utente (come per store/update):
+        // evita che un docente sondi i conflitti di insegnamenti non suoi.
+        $insegnamentiPermessi = $this->insegnamentiDisponibili($request->user())->pluck('id')->all();
+
         $dati = $request->validate([
-            'insegnamento_id' => ['required', 'integer'],
+            'insegnamento_id' => ['required', 'integer', Rule::in($insegnamentiPermessi)],
             'data' => ['required', 'date'],
             'ora_inizio' => ['required', 'date_format:H:i'],
             'ora_fine' => ['required', 'date_format:H:i', 'after:ora_inizio'],
@@ -229,11 +235,18 @@ class AppelloController extends Controller
     }
 
     /**
-     * Verifica che l'utente possa gestire questo appello.
+     * Verifica che l'utente possa gestire questo appello: l'admin sempre, il
+     * docente se è titolare dell'insegnamento o ne è l'autore.
      */
     private function autorizza($user, Appello $appello): void
     {
-        if (! $user->hasRole('amministratore') && $appello->user_id !== $user->id) {
+        if ($user->hasRole('amministratore')) {
+            return;
+        }
+
+        $titolare = $user->insegnamenti()->whereKey($appello->insegnamento_id)->exists();
+
+        if (! $titolare && $appello->user_id !== $user->id) {
             abort(403);
         }
     }

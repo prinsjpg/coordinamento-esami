@@ -43,11 +43,12 @@ class DashboardController extends Controller
             ]);
         }
 
-        // Dati per il docente: solo i propri insegnamenti e appelli
+        // Dati per il docente: i propri insegnamenti e gli appelli ad essi
+        // collegati (anche se inseriti da un co-titolare) oltre ai propri.
         $insegnamenti = $user->insegnamenti()->with('corsoStudio')->get();
 
-        $mieiAppelli = $user->appelli()
-            ->with('insegnamento')
+        $mieiAppelli = Appello::with('insegnamento')
+            ->visibiliAlDocente($user)
             ->whereDate('data', '>=', Carbon::today())
             ->orderBy('data')
             ->orderBy('ora_inizio')

@@ -58,7 +58,7 @@
                         </thead>
                         <tbody>
                             @foreach ($appelliDelGiorno as $appello)
-                                @php($visibile = $isAdmin || $appello->user_id === $userId)
+                                @php($visibile = $isAdmin || $appello->user_id === $userId || $insegnamentiIds->contains($appello->insegnamento_id))
                                 <tr class="{{ $visibile ? '' : 'text-muted' }}">
                                     <td>{{ \Illuminate\Support\Str::substr($appello->ora_inizio, 0, 5) }}&ndash;{{ \Illuminate\Support\Str::substr($appello->ora_fine, 0, 5) }}</td>
                                     <td class="text-center">{{ $appello->insegnamento->anno_frequenza }}°</td>
