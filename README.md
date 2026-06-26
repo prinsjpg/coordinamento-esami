@@ -40,6 +40,10 @@ La modalità di gestione è configurabile dall'amministratore:
 - **Blocco**: impedisce il salvataggio dell'appello in conflitto.
 - **Avviso**: consente il salvataggio segnalando il conflitto.
 
+Gli appelli già in conflitto (tipicamente salvati in modalità «avviso») sono
+inoltre **evidenziati** nel calendario e nell'elenco, così l'amministratore può
+individuarli e intervenire.
+
 La visibilità è differenziata: il docente vede solo data, corso, anno e fascia
 occupati degli appelli altrui, mentre l'amministratore vede tutti i dettagli.
 

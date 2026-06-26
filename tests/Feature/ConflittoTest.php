@@ -289,4 +289,34 @@ class ConflittoTest extends TestCase
         $response->assertSessionHas('warning');
         $this->assertDatabaseHas('appelli', ['insegnamento_id' => $this->insegnamentoA->id]);
     }
+
+    public function test_id_in_conflitto_individua_gli_appelli_sovrapposti(): void
+    {
+        // insegnamentoA (anno 2): si sovrappone all'appello di insegnamentoB
+        // creato nel setUp (stesso corso e anno, 10:00-12:00).
+        $sovrapposto = Appello::create([
+            'insegnamento_id' => $this->insegnamentoA->id,
+            'sessione_id' => $this->sessione->id,
+            'user_id' => $this->docente->id,
+            'data' => $this->giorno,
+            'ora_inizio' => '10:00',
+            'ora_fine' => '12:00',
+        ]);
+
+        // insegnamentoC (anno 1): stessa fascia ma anno diverso, nessun conflitto.
+        $libero = Appello::create([
+            'insegnamento_id' => $this->insegnamentoC->id,
+            'sessione_id' => $this->sessione->id,
+            'user_id' => $this->docente->id,
+            'data' => $this->giorno,
+            'ora_inizio' => '10:00',
+            'ora_fine' => '12:00',
+        ]);
+
+        $ids = app(\App\Services\ConflittoService::class)
+            ->idInConflitto(Appello::with('insegnamento')->get());
+
+        $this->assertTrue($ids->contains($sovrapposto->id));
+        $this->assertFalse($ids->contains($libero->id));
+    }
 }
