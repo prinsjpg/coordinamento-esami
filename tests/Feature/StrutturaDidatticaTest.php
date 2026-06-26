@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Appello;
 use App\Models\Configurazione;
 use App\Models\CorsoStudio;
 use App\Models\Insegnamento;
+use App\Models\Sessione;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -111,6 +113,51 @@ class StrutturaDidatticaTest extends TestCase
         foreach ($pagine as $url) {
             $this->actingAs($admin)->get($url)->assertOk();
         }
+    }
+
+    private function corsoConAppello(): CorsoStudio
+    {
+        $corso = CorsoStudio::create(['nome' => 'Informatica']);
+        $ins = Insegnamento::create([
+            'nome' => 'Programmazione', 'anno_frequenza' => 1, 'corso_studio_id' => $corso->id,
+        ]);
+        $sessione = Sessione::create([
+            'nome' => 'Estiva', 'data_inizio' => now(), 'data_fine' => now()->addDays(30),
+        ]);
+        $sessione->periodiInserimento()->create([
+            'data_inizio' => now()->subDay(), 'data_fine' => now()->addDay(),
+        ]);
+
+        $docente = User::factory()->create();
+        $docente->assignRole('docente');
+
+        Appello::create([
+            'insegnamento_id' => $ins->id, 'sessione_id' => $sessione->id,
+            'user_id' => $docente->id, 'data' => now()->addDays(5)->format('Y-m-d'),
+            'ora_inizio' => '09:00', 'ora_fine' => '11:00',
+        ]);
+
+        return $corso;
+    }
+
+    public function test_il_messaggio_di_cancellazione_del_corso_indica_la_cascata(): void
+    {
+        $this->corsoConAppello();
+
+        $response = $this->actingAs($this->admin())->get(route('corsi.index'));
+
+        $response->assertOk();
+        $response->assertSee('Verranno eliminati anche 1 insegnamento e 1 appello.');
+    }
+
+    public function test_il_messaggio_di_cancellazione_della_sessione_indica_la_cascata(): void
+    {
+        $this->corsoConAppello();
+
+        $response = $this->actingAs($this->admin())->get(route('sessioni.index'));
+
+        $response->assertOk();
+        $response->assertSee('Verranno eliminati anche 1 finestra di inserimento e 1 appello.');
     }
 
     public function test_admin_aggiorna_la_modalita_dei_conflitti(): void

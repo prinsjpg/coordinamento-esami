@@ -42,8 +42,21 @@
                                     <a href="{{ route('sessioni.edit', $sessione) }}" class="btn btn-sm btn-outline-secondary">
                                         <i class="bi bi-pencil"></i> Modifica
                                     </a>
-                                    <x-delete-form :action="route('sessioni.destroy', $sessione)"
-                                        message="Eliminare la sessione «{{ $sessione->nome }}»? Verranno rimossi anche periodi e appelli collegati." />
+                                    @php
+                                        $parti = [];
+                                        if ($sessione->periodi_inserimento_count > 0) {
+                                            $parti[] = $sessione->periodi_inserimento_count . ' '
+                                                . ($sessione->periodi_inserimento_count === 1 ? 'finestra di inserimento' : 'finestre di inserimento');
+                                        }
+                                        if ($sessione->appelli_count > 0) {
+                                            $parti[] = $sessione->appelli_count . ' ' . ($sessione->appelli_count === 1 ? 'appello' : 'appelli');
+                                        }
+                                        $msg = "Eliminare la sessione «{$sessione->nome}»?";
+                                        if ($parti) {
+                                            $msg .= ' Verranno eliminati anche ' . implode(' e ', $parti) . '.';
+                                        }
+                                    @endphp
+                                    <x-delete-form :action="route('sessioni.destroy', $sessione)" :message="$msg" />
                                 </td>
                             </tr>
                         @endforeach

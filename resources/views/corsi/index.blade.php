@@ -35,8 +35,20 @@
                                     <a href="{{ route('corsi.edit', $corso) }}" class="btn btn-sm btn-outline-secondary">
                                         <i class="bi bi-pencil"></i> Modifica
                                     </a>
-                                    <x-delete-form :action="route('corsi.destroy', $corso)"
-                                        message="Eliminare il corso «{{ $corso->nome }}»? Verranno rimossi anche i relativi insegnamenti." />
+                                    @php
+                                        $parti = [];
+                                        if ($corso->insegnamenti_count > 0) {
+                                            $parti[] = $corso->insegnamenti_count . ' ' . ($corso->insegnamenti_count === 1 ? 'insegnamento' : 'insegnamenti');
+                                        }
+                                        if ($corso->appelli_count > 0) {
+                                            $parti[] = $corso->appelli_count . ' ' . ($corso->appelli_count === 1 ? 'appello' : 'appelli');
+                                        }
+                                        $msg = "Eliminare il corso «{$corso->nome}»?";
+                                        if ($parti) {
+                                            $msg .= ' Verranno eliminati anche ' . implode(' e ', $parti) . '.';
+                                        }
+                                    @endphp
+                                    <x-delete-form :action="route('corsi.destroy', $corso)" :message="$msg" />
                                 </td>
                             </tr>
                         @endforeach
