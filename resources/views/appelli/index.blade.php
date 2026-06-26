@@ -34,9 +34,15 @@
                     </thead>
                     <tbody>
                         @foreach ($appelli as $appello)
-                            <tr>
+                            @php($inConflitto = $idConflitto->contains($appello->id))
+                            <tr class="{{ $inConflitto ? 'table-danger' : '' }}">
                                 <td>{{ $appello->data->format('d/m/Y') }}</td>
-                                <td>{{ \Illuminate\Support\Str::substr($appello->ora_inizio, 0, 5) }}&ndash;{{ \Illuminate\Support\Str::substr($appello->ora_fine, 0, 5) }}</td>
+                                <td>
+                                    {{ \Illuminate\Support\Str::substr($appello->ora_inizio, 0, 5) }}&ndash;{{ \Illuminate\Support\Str::substr($appello->ora_fine, 0, 5) }}
+                                    @if ($inConflitto)
+                                        <span class="badge text-bg-danger ms-1" title="In conflitto con un altro appello"><i class="bi bi-exclamation-triangle"></i> conflitto</span>
+                                    @endif
+                                </td>
                                 <td>{{ $appello->insegnamento->nome }}</td>
                                 <td class="text-center">{{ $appello->insegnamento->anno_frequenza }}°</td>
                                 @if ($isAdmin)

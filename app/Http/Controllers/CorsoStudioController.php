@@ -9,7 +9,7 @@ class CorsoStudioController extends Controller
 {
     public function index()
     {
-        $corsi = CorsoStudio::withCount('insegnamenti')->orderBy('nome')->get();
+        $corsi = CorsoStudio::withCount(['insegnamenti', 'appelli'])->orderBy('nome')->get();
 
         return view('corsi.index', compact('corsi'));
     }

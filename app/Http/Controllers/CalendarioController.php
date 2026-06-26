@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Appello;
 use App\Models\Sessione;
+use App\Services\ConflittoService;
 use Illuminate\Http\Request;
 
 class CalendarioController extends Controller
@@ -14,7 +15,7 @@ class CalendarioController extends Controller
      * tutti i dettagli, mentre degli appelli altrui il docente vede solo
      * la data e l'anno di frequenza occupati.
      */
-    public function index(Request $request)
+    public function index(Request $request, ConflittoService $conflitti)
     {
         $user = $request->user();
         $isAdmin = $user->hasRole('amministratore');
@@ -27,13 +28,16 @@ class CalendarioController extends Controller
             : $sessioni->first();
 
         $perData = collect();
+        $idConflitto = collect();
 
         if ($sessioneSelezionata !== null) {
-            $perData = Appello::with(['insegnamento.corsoStudio', 'docente'])
+            $appelli = Appello::with(['insegnamento.corsoStudio', 'docente'])
                 ->where('sessione_id', $sessioneSelezionata->id)
                 ->orderBy('data')->orderBy('ora_inizio')
-                ->get()
-                ->groupBy(fn (Appello $a) => $a->data->format('Y-m-d'));
+                ->get();
+
+            $idConflitto = $conflitti->idInConflitto($appelli);
+            $perData = $appelli->groupBy(fn (Appello $a) => $a->data->format('Y-m-d'));
         }
 
         // Insegnamenti del docente: gli appelli ad essi collegati (anche di un
@@ -49,6 +53,7 @@ class CalendarioController extends Controller
             'isAdmin' => $isAdmin,
             'userId' => $user->id,
             'insegnamentiIds' => $insegnamentiIds,
+            'idConflitto' => $idConflitto,
         ]);
     }
 }

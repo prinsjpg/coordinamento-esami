@@ -59,8 +59,14 @@
                         <tbody>
                             @foreach ($appelliDelGiorno as $appello)
                                 @php($visibile = $isAdmin || $appello->user_id === $userId || $insegnamentiIds->contains($appello->insegnamento_id))
-                                <tr class="{{ $visibile ? '' : 'text-muted' }}">
-                                    <td>{{ \Illuminate\Support\Str::substr($appello->ora_inizio, 0, 5) }}&ndash;{{ \Illuminate\Support\Str::substr($appello->ora_fine, 0, 5) }}</td>
+                                @php($inConflitto = $idConflitto->contains($appello->id))
+                                <tr class="{{ $inConflitto ? 'table-danger' : '' }} {{ $visibile ? '' : 'text-muted' }}">
+                                    <td>
+                                        {{ \Illuminate\Support\Str::substr($appello->ora_inizio, 0, 5) }}&ndash;{{ \Illuminate\Support\Str::substr($appello->ora_fine, 0, 5) }}
+                                        @if ($inConflitto)
+                                            <span class="badge text-bg-danger ms-1" title="In conflitto con un altro appello"><i class="bi bi-exclamation-triangle"></i> conflitto</span>
+                                        @endif
+                                    </td>
                                     <td class="text-center">{{ $appello->insegnamento->anno_frequenza }}°</td>
                                     <td>{{ $appello->insegnamento->corsoStudio->nome }}</td>
                                     @if ($visibile)

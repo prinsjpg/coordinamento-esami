@@ -15,7 +15,7 @@ use Illuminate\Validation\Rule;
 
 class AppelloController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request, ConflittoService $conflitti)
     {
         $user = $request->user();
 
@@ -33,6 +33,7 @@ class AppelloController extends Controller
         return view('appelli.index', [
             'appelli' => $appelli,
             'isAdmin' => $user->hasRole('amministratore'),
+            'idConflitto' => $conflitti->idInConflitto($appelli),
         ]);
     }
 

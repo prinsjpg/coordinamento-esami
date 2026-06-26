@@ -99,4 +99,28 @@ class CalendarioTest extends TestCase
     {
         $this->actingAs($this->docente1)->get('/')->assertRedirect(route('dashboard'));
     }
+
+    public function test_il_calendario_evidenzia_gli_appelli_in_conflitto(): void
+    {
+        // Aggiungo un appello di Algoritmi sovrapposto a Basi di Dati (stesso
+        // corso e anno): i due risultano in conflitto.
+        $insB = Insegnamento::where('nome', 'Algoritmi')->firstOrFail();
+        Appello::create([
+            'insegnamento_id' => $insB->id,
+            'sessione_id' => $this->sessione->id,
+            'user_id' => $this->docente2->id,
+            'data' => Carbon::today()->addDays(5)->format('Y-m-d'),
+            'ora_inizio' => '10:00',
+            'ora_fine' => '12:00',
+        ]);
+
+        $admin = User::factory()->create();
+        $admin->assignRole('amministratore');
+
+        $response = $this->actingAs($admin)
+            ->get(route('calendario.index', ['sessione' => $this->sessione->id]));
+
+        $response->assertOk();
+        $response->assertSee('conflitto');
+    }
 }

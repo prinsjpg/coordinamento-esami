@@ -45,8 +45,14 @@
                                     <a href="{{ route('insegnamenti.edit', $insegnamento) }}" class="btn btn-sm btn-outline-secondary">
                                         <i class="bi bi-pencil"></i> Modifica
                                     </a>
-                                    <x-delete-form :action="route('insegnamenti.destroy', $insegnamento)"
-                                        message="Eliminare l'insegnamento «{{ $insegnamento->nome }}»?" />
+                                    @php
+                                        $msg = "Eliminare l'insegnamento «{$insegnamento->nome}»?";
+                                        if ($insegnamento->appelli_count > 0) {
+                                            $msg .= ' Verranno eliminati anche ' . $insegnamento->appelli_count . ' '
+                                                . ($insegnamento->appelli_count === 1 ? 'appello' : 'appelli') . '.';
+                                        }
+                                    @endphp
+                                    <x-delete-form :action="route('insegnamenti.destroy', $insegnamento)" :message="$msg" />
                                 </td>
                             </tr>
                         @endforeach

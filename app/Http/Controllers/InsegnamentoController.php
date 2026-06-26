@@ -12,6 +12,7 @@ class InsegnamentoController extends Controller
     public function index()
     {
         $insegnamenti = Insegnamento::with(['corsoStudio', 'docenti'])
+            ->withCount('appelli')
             ->orderBy('nome')
             ->get();
 
