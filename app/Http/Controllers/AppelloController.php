@@ -39,7 +39,7 @@ class AppelloController extends Controller
         return view('appelli.create', [
             'appello' => new Appello(),
             'insegnamenti' => $this->insegnamentiDisponibili($request->user()),
-            'sessioni' => Sessione::orderByDesc('data_inizio')->get(),
+            'sessioni' => $this->sessioniDisponibili($request->user()),
         ]);
     }
 
@@ -85,7 +85,7 @@ class AppelloController extends Controller
         return view('appelli.edit', [
             'appello' => $appello,
             'insegnamenti' => $this->insegnamentiDisponibili($request->user()),
-            'sessioni' => Sessione::orderByDesc('data_inizio')->get(),
+            'sessioni' => $this->sessioniDisponibili($request->user(), $appello->sessione_id),
         ]);
     }
 
@@ -203,6 +203,29 @@ class AppelloController extends Controller
             : $user->insegnamenti();
 
         return $query->with('corsoStudio')->orderBy('nome')->get();
+    }
+
+    /**
+     * Sessioni selezionabili: tutte per l'admin, solo quelle con finestra di
+     * inserimento aperta per il docente. In modifica si include comunque la
+     * sessione corrente dell'appello, così resta selezionata nel form.
+     */
+    private function sessioniDisponibili($user, ?int $includiSessioneId = null)
+    {
+        $query = $user->hasRole('amministratore')
+            ? Sessione::query()
+            : Sessione::conFinestraAperta();
+
+        $sessioni = $query->orderByDesc('data_inizio')->get();
+
+        if ($includiSessioneId !== null && ! $sessioni->contains('id', $includiSessioneId)) {
+            $corrente = Sessione::find($includiSessioneId);
+            if ($corrente !== null) {
+                $sessioni->prepend($corrente);
+            }
+        }
+
+        return $sessioni;
     }
 
     /**

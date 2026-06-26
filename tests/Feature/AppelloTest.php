@@ -225,4 +225,45 @@ class AppelloTest extends TestCase
 
         $this->assertDatabaseCount('appelli', 1);
     }
+
+    public function test_il_docente_vede_nel_form_solo_le_sessioni_con_finestra_aperta(): void
+    {
+        $chiusa = Sessione::create([
+            'nome' => 'Sessione Chiusa Test',
+            'data_inizio' => Carbon::today(),
+            'data_fine' => Carbon::today()->addDays(30),
+        ]);
+        $chiusa->periodiInserimento()->create([
+            'data_inizio' => Carbon::today()->subDays(20),
+            'data_fine' => Carbon::today()->subDays(10),
+        ]);
+
+        $response = $this->actingAs($this->docente)->get(route('appelli.create'));
+
+        $response->assertOk();
+        $response->assertSee('Sessione Estiva');        // finestra aperta (da setUp)
+        $response->assertDontSee('Sessione Chiusa Test');
+    }
+
+    public function test_l_admin_vede_tutte_le_sessioni_nel_form(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('amministratore');
+
+        $chiusa = Sessione::create([
+            'nome' => 'Sessione Chiusa Test',
+            'data_inizio' => Carbon::today(),
+            'data_fine' => Carbon::today()->addDays(30),
+        ]);
+        $chiusa->periodiInserimento()->create([
+            'data_inizio' => Carbon::today()->subDays(20),
+            'data_fine' => Carbon::today()->subDays(10),
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('appelli.create'));
+
+        $response->assertOk();
+        $response->assertSee('Sessione Estiva');
+        $response->assertSee('Sessione Chiusa Test');
+    }
 }
