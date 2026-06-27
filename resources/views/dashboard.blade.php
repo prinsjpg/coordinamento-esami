@@ -87,6 +87,53 @@
             </div>
         @endif
 
+        {{-- Conflitti già presenti: appelli che si sovrappongono, da risolvere --}}
+        @if ($appelliInConflitto->isNotEmpty())
+            <div class="card border-danger mb-4">
+                <div class="card-header fw-semibold bg-danger-subtle text-danger-emphasis">
+                    <i class="bi bi-exclamation-triangle"></i> Conflitti rilevati ({{ $appelliInConflitto->count() }})
+                </div>
+                <div class="card-body p-0">
+                    <p class="small text-muted m-3 mb-2">
+                        Appelli che si sovrappongono per stesso corso e anno oppure per stessa aula. Aprili per modificarli e risolvere il conflitto.
+                    </p>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Orario</th>
+                                    <th>Insegnamento</th>
+                                    <th>Docente</th>
+                                    <th>Aula</th>
+                                    <th class="text-end">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($appelliInConflitto as $appello)
+                                    <tr class="table-danger">
+                                        <td>{{ $appello->data->format('d/m/Y') }}</td>
+                                        <td>{{ \Illuminate\Support\Str::substr($appello->ora_inizio, 0, 5) }}&ndash;{{ \Illuminate\Support\Str::substr($appello->ora_fine, 0, 5) }}</td>
+                                        <td>
+                                            {{ $appello->insegnamento->nome }}
+                                            <span class="text-muted small">({{ $appello->insegnamento->corsoStudio->nome }}, {{ $appello->insegnamento->anno_frequenza }}° anno)</span>
+                                        </td>
+                                        <td>{{ $appello->docente->name }}</td>
+                                        <td>{{ $appello->aula ?? '—' }}</td>
+                                        <td class="text-end">
+                                            <a href="{{ route('appelli.edit', $appello) }}" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-pencil"></i> Risolvi
+                                            </a>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         <div class="card">
             <div class="card-header fw-semibold">Prossimi appelli</div>
             <div class="card-body p-0">
@@ -106,9 +153,14 @@
                             </thead>
                             <tbody>
                                 @foreach ($prossimiAppelli as $appello)
-                                    <tr>
+                                    <tr class="{{ $idConflitto->contains($appello->id) ? 'table-danger' : '' }}">
                                         <td>{{ $appello->data->format('d/m/Y') }}</td>
-                                        <td>{{ \Illuminate\Support\Str::substr($appello->ora_inizio, 0, 5) }}&ndash;{{ \Illuminate\Support\Str::substr($appello->ora_fine, 0, 5) }}</td>
+                                        <td>
+                                            {{ \Illuminate\Support\Str::substr($appello->ora_inizio, 0, 5) }}&ndash;{{ \Illuminate\Support\Str::substr($appello->ora_fine, 0, 5) }}
+                                            @if ($idConflitto->contains($appello->id))
+                                                <span class="badge text-bg-danger ms-1" title="In conflitto con un altro appello"><i class="bi bi-exclamation-triangle"></i> conflitto</span>
+                                            @endif
+                                        </td>
                                         <td>{{ $appello->insegnamento->nome }}</td>
                                         <td>{{ $appello->docente->name }}</td>
                                         <td>{{ $appello->aula ?? '—' }}</td>
@@ -198,9 +250,12 @@
                     <div class="card-header fw-semibold">I miei prossimi appelli</div>
                     <ul class="list-group list-group-flush">
                         @forelse ($mieiAppelli as $appello)
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <li class="list-group-item d-flex justify-content-between align-items-center {{ $idConflitto->contains($appello->id) ? 'list-group-item-danger' : '' }}">
                                 <span>
                                     {{ $appello->insegnamento->nome }}
+                                    @if ($idConflitto->contains($appello->id))
+                                        <span class="badge text-bg-danger ms-1" title="In conflitto con un altro appello"><i class="bi bi-exclamation-triangle"></i> conflitto</span>
+                                    @endif
                                     <small class="text-muted d-block">{{ $appello->aula ?? 'Aula da definire' }}</small>
                                 </span>
                                 <span class="badge text-bg-primary">{{ $appello->data->format('d/m/Y') }}</span>
