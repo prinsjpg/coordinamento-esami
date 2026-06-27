@@ -9,14 +9,25 @@ use Illuminate\Http\Request;
 
 class InsegnamentoController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $insegnamenti = Insegnamento::with(['corsoStudio', 'docenti'])
             ->withCount('appelli')
+            ->when($request->filled('corso'), fn ($q) => $q->where('corso_studio_id', (int) $request->query('corso')))
+            ->when($request->filled('anno'), fn ($q) => $q->where('anno_frequenza', (int) $request->query('anno')))
+            ->when($request->filled('q'), fn ($q) => $q->where('nome', 'like', '%' . $request->query('q') . '%'))
             ->orderBy('nome')
             ->get();
 
-        return view('insegnamenti.index', compact('insegnamenti'));
+        return view('insegnamenti.index', [
+            'insegnamenti' => $insegnamenti,
+            'corsi' => CorsoStudio::orderBy('nome')->get(),
+            'filtri' => [
+                'corso' => $request->query('corso'),
+                'anno' => $request->query('anno'),
+                'q' => $request->query('q'),
+            ],
+        ]);
     }
 
     public function create()
