@@ -229,6 +229,40 @@ class AppelloTest extends TestCase
         $response->assertSee('conflitto');
     }
 
+    public function test_il_filtro_mostra_solo_gli_appelli_in_conflitto(): void
+    {
+        // Appello senza conflitti
+        Appello::create($this->datiValidi([
+            'user_id' => $this->docente->id,
+            'aula' => 'Libera',
+            'ora_inizio' => '08:00',
+            'ora_fine' => '09:00',
+        ]));
+
+        // Due appelli in conflitto tra loro (stesso corso e anno, sovrapposti)
+        $insB = Insegnamento::create([
+            'nome' => 'Reti', 'anno_frequenza' => $this->insegnamento->anno_frequenza,
+            'corso_studio_id' => $this->insegnamento->corso_studio_id,
+        ]);
+        $this->docente->insegnamenti()->attach($insB->id);
+
+        Appello::create($this->datiValidi([
+            'user_id' => $this->docente->id, 'aula' => 'AppelloUno',
+            'ora_inizio' => '10:00', 'ora_fine' => '12:00',
+        ]));
+        Appello::create($this->datiValidi([
+            'user_id' => $this->docente->id, 'insegnamento_id' => $insB->id, 'aula' => 'AppelloDue',
+            'ora_inizio' => '11:00', 'ora_fine' => '13:00',
+        ]));
+
+        $response = $this->actingAs($this->docente)->get(route('appelli.index', ['conflitti' => 1]));
+
+        $response->assertOk();
+        $response->assertSee('AppelloUno');
+        $response->assertSee('AppelloDue');
+        $response->assertDontSee('Libera');
+    }
+
     public function test_il_form_precompila_insegnamento_e_sessione_dalla_query(): void
     {
         $response = $this->actingAs($this->docente)->get(route('appelli.create', [

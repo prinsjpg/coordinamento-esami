@@ -12,10 +12,22 @@
 @endsection
 
 @section('content')
+    {{-- Filtro: tutti gli appelli oppure solo quelli in conflitto --}}
+    @if ($totaleConflitti > 0)
+        <div class="btn-group mb-3" role="group" aria-label="Filtro appelli">
+            <a href="{{ route('appelli.index') }}"
+                class="btn btn-outline-secondary {{ $soloConflitti ? '' : 'active' }}">Tutti</a>
+            <a href="{{ route('appelli.index', ['conflitti' => 1]) }}"
+                class="btn btn-outline-danger {{ $soloConflitti ? 'active' : '' }}">
+                <i class="bi bi-exclamation-triangle"></i> Solo conflitti ({{ $totaleConflitti }})
+            </a>
+        </div>
+    @endif
+
     <div class="card">
         <div class="card-body p-0">
             @if ($appelli->isEmpty())
-                <p class="text-muted m-3">Nessun appello presente.</p>
+                <p class="text-muted m-3">{{ $soloConflitti ? 'Nessun appello in conflitto.' : 'Nessun appello presente.' }}</p>
             @else
                 <table class="table table-hover align-middle mb-0">
                     <thead>

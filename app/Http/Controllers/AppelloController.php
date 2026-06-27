@@ -37,11 +37,20 @@ class AppelloController extends Controller
             $idConflitto = $conflitti->idInConflitto($appelli, $universo);
         }
 
+        // Filtro opzionale "solo conflitti": il conteggio resta sul totale,
+        // così il pulsante mostra quanti appelli sono in conflitto in tutto.
+        $soloConflitti = $request->boolean('conflitti');
+        $appelliMostrati = $soloConflitti
+            ? $appelli->whereIn('id', $idConflitto)->values()
+            : $appelli;
+
         return view('appelli.index', [
-            'appelli' => $appelli,
+            'appelli' => $appelliMostrati,
             'isAdmin' => $user->hasRole('amministratore'),
             'idConflitto' => $idConflitto,
-            'idModificabili' => $this->idModificabili($appelli, $user),
+            'idModificabili' => $this->idModificabili($appelliMostrati, $user),
+            'soloConflitti' => $soloConflitti,
+            'totaleConflitti' => $idConflitto->count(),
         ]);
     }
 
