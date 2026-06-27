@@ -24,24 +24,43 @@ class AppelloController extends Controller
         if ($user->hasRole('amministratore')) {
             $appelli = Appello::with(['insegnamento.corsoStudio', 'sessione.periodiInserimento', 'docente'])
                 ->orderBy('data')->orderBy('ora_inizio')->get();
+            // L'admin vede tutti gli appelli: l'insieme mostrato è già l'universo.
+            $idConflitto = $conflitti->idInConflitto($appelli);
         } else {
             $appelli = Appello::with(['insegnamento.corsoStudio', 'sessione.periodiInserimento', 'docente'])
                 ->visibiliAlDocente($user)
                 ->orderBy('data')->orderBy('ora_inizio')->get();
+            // I conflitti vanno cercati contro TUTTI gli appelli, non solo i
+            // propri: un appello può confliggere con quello di un altro docente
+            // (es. stessa aula). Si confronta quindi con l'insieme completo.
+            $universo = Appello::with('insegnamento')->get();
+            $idConflitto = $conflitti->idInConflitto($appelli, $universo);
         }
 
         return view('appelli.index', [
             'appelli' => $appelli,
             'isAdmin' => $user->hasRole('amministratore'),
-            'idConflitto' => $conflitti->idInConflitto($appelli),
+            'idConflitto' => $idConflitto,
             'idModificabili' => $this->idModificabili($appelli, $user),
         ]);
     }
 
     public function create(Request $request)
     {
+        $appello = new Appello();
+
+        // Pre-compilazione opzionale da link (es. promemoria in dashboard): si
+        // impostano solo insegnamento e sessione. Se un id non rientra tra
+        // quelli consentiti, il form semplicemente non lo pre-seleziona.
+        if ($request->filled('insegnamento')) {
+            $appello->insegnamento_id = (int) $request->query('insegnamento');
+        }
+        if ($request->filled('sessione')) {
+            $appello->sessione_id = (int) $request->query('sessione');
+        }
+
         return view('appelli.create', [
-            'appello' => new Appello(),
+            'appello' => $appello,
             'insegnamenti' => $this->insegnamentiDisponibili($request->user()),
             'sessioni' => $this->sessioniDisponibili($request->user()),
         ]);

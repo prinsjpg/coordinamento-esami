@@ -198,6 +198,49 @@ class AppelloTest extends TestCase
         $this->actingAs($this->docente)->get(route('appelli.edit', $appello))->assertOk();
     }
 
+    public function test_il_docente_vede_in_elenco_il_conflitto_con_un_appello_altrui(): void
+    {
+        // Mio appello (anno 1) in un'aula specifica
+        Appello::create($this->datiValidi([
+            'user_id' => $this->docente->id,
+            'aula' => 'Lab X',
+            'ora_inizio' => '09:00',
+            'ora_fine' => '11:00',
+        ]));
+
+        // Appello di un altro docente, insegnamento non visibile al docente:
+        // corso/anno diversi ma stessa aula e fascia sovrapposta.
+        $altro = User::factory()->create();
+        $altro->assignRole('docente');
+        $insAltro = Insegnamento::create([
+            'nome' => 'Analisi', 'anno_frequenza' => 2, 'corso_studio_id' => $this->insegnamento->corso_studio_id,
+        ]);
+        Appello::create($this->datiValidi([
+            'user_id' => $altro->id,
+            'insegnamento_id' => $insAltro->id,
+            'aula' => 'lab x',
+            'ora_inizio' => '10:00',
+            'ora_fine' => '12:00',
+        ]));
+
+        $response = $this->actingAs($this->docente)->get(route('appelli.index'));
+
+        $response->assertOk();
+        $response->assertSee('conflitto');
+    }
+
+    public function test_il_form_precompila_insegnamento_e_sessione_dalla_query(): void
+    {
+        $response = $this->actingAs($this->docente)->get(route('appelli.create', [
+            'insegnamento' => $this->insegnamento->id,
+            'sessione' => $this->sessione->id,
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('value="' . $this->insegnamento->id . '" selected', false);
+        $response->assertSee('value="' . $this->sessione->id . '" selected', false);
+    }
+
     public function test_non_si_puo_fissare_un_appello_in_una_data_passata(): void
     {
         // Tre giorni fa (venerdì rispetto al lunedì congelato): giorno feriale ma passato

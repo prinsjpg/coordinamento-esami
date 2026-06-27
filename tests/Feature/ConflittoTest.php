@@ -319,4 +319,46 @@ class ConflittoTest extends TestCase
         $this->assertTrue($ids->contains($sovrapposto->id));
         $this->assertFalse($ids->contains($libero->id));
     }
+
+    public function test_id_in_conflitto_usa_l_universo_per_gli_appelli_altrui(): void
+    {
+        // Mio appello (anno 1) in un'aula specifica
+        $mio = Appello::create([
+            'insegnamento_id' => $this->insegnamentoC->id, // anno 1
+            'sessione_id' => $this->sessione->id,
+            'user_id' => $this->docente->id,
+            'data' => $this->giorno,
+            'ora_inizio' => '09:00',
+            'ora_fine' => '11:00',
+            'aula' => 'Lab 2',
+        ]);
+
+        // Appello di un ALTRO docente, corso/anno diversi (nessun conflitto
+        // studenti) ma stessa aula e fascia sovrapposta.
+        $altroDocente = User::factory()->create();
+        $altroDocente->assignRole('docente');
+        $altroCorso = CorsoStudio::create(['nome' => 'Fisica']);
+        $insAltro = Insegnamento::create(['nome' => 'Meccanica', 'anno_frequenza' => 3, 'corso_studio_id' => $altroCorso->id]);
+        Appello::create([
+            'insegnamento_id' => $insAltro->id,
+            'sessione_id' => $this->sessione->id,
+            'user_id' => $altroDocente->id,
+            'data' => $this->giorno,
+            'ora_inizio' => '10:00',
+            'ora_fine' => '12:00',
+            'aula' => 'Lab 2',
+        ]);
+
+        $service = app(\App\Services\ConflittoService::class);
+
+        // Insieme "i miei appelli": solo quelli del docente
+        $miei = Appello::with('insegnamento')->where('user_id', $this->docente->id)->get();
+
+        // Senza universo l'appello altrui non è considerato: nessun conflitto
+        $this->assertFalse($service->idInConflitto($miei)->contains($mio->id));
+
+        // Con l'universo completo il conflitto di aula viene rilevato
+        $conUniverso = $service->idInConflitto($miei, Appello::with('insegnamento')->get());
+        $this->assertTrue($conUniverso->contains($mio->id));
+    }
 }

@@ -162,7 +162,7 @@
                                         {{ $ins->nome }}
                                         <span class="text-muted">({{ $ins->corsoStudio->nome }}, {{ $ins->anno_frequenza }}° anno)</span>
                                         @if ($seg['stato'] !== 'chiusa')
-                                            <a href="{{ route('appelli.create') }}" class="ms-1">crea appello</a>
+                                            <a href="{{ route('appelli.create', ['insegnamento' => $ins->id, 'sessione' => $seg['sessione']->id]) }}" class="ms-1">crea appello</a>
                                         @endif
                                     </li>
                                 @endforeach
