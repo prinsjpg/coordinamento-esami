@@ -39,10 +39,11 @@
         </div>
         <div class="col-sm-4">
             <label for="q" class="form-label">Cerca per nome</label>
-            <input type="text" name="q" id="q" class="form-control" value="{{ $filtri['q'] }}" placeholder="Nome insegnamento…">
+            <input type="text" name="q" id="q" class="form-control" value="{{ $filtri['q'] }}"
+                placeholder="Nome insegnamento…" onchange="this.form.submit()">
         </div>
         <div class="col-sm-2 d-flex gap-2">
-            <button type="submit" class="btn btn-outline-secondary w-100">Filtra</button>
+            <noscript><button type="submit" class="btn btn-outline-secondary w-100">Filtra</button></noscript>
             @if ($filtriAttivi)
                 <a href="{{ route('insegnamenti.index') }}" class="btn btn-outline-secondary" title="Azzera filtri"><i class="bi bi-x-lg"></i></a>
             @endif
