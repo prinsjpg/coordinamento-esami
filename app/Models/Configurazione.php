@@ -14,5 +14,10 @@ class Configurazione extends Model
 
     protected $fillable = [
         'modalita_conflitto',
+        'giorni_preappello',
+    ];
+
+    protected $casts = [
+        'giorni_preappello' => 'integer',
     ];
 }

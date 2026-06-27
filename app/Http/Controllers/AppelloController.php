@@ -72,6 +72,7 @@ class AppelloController extends Controller
             'appello' => $appello,
             'insegnamenti' => $this->insegnamentiDisponibili($request->user()),
             'sessioni' => $this->sessioniDisponibili($request->user()),
+            'giorniPreappello' => $this->giorniPreappello(),
         ]);
     }
 
@@ -122,6 +123,7 @@ class AppelloController extends Controller
             'appello' => $appello,
             'insegnamenti' => $this->insegnamentiDisponibili($request->user()),
             'sessioni' => $this->sessioniDisponibili($request->user(), $appello->sessione_id),
+            'giorniPreappello' => $this->giorniPreappello(),
         ]);
     }
 
@@ -325,9 +327,14 @@ class AppelloController extends Controller
     {
         $giorno = Carbon::parse($data);
 
-        if ($giorno->lt($sessione->data_inizio) || $giorno->gt($sessione->data_fine)) {
-            return ['data' => 'La data dell\'appello deve rientrare nel periodo della sessione ('
-                . $sessione->data_inizio->format('d/m/Y') . ' – ' . $sessione->data_fine->format('d/m/Y') . ').'];
+        // La data può anticipare l'inizio sessione fino al margine "preappello",
+        // così le date d'esame si possono pubblicare in anticipo. Il limite
+        // superiore resta la fine della sessione.
+        $dataMinima = $sessione->data_inizio->copy()->subDays($this->giorniPreappello());
+
+        if ($giorno->lt($dataMinima) || $giorno->gt($sessione->data_fine)) {
+            return ['data' => 'La data dell\'appello deve cadere tra il '
+                . $dataMinima->format('d/m/Y') . ' e il ' . $sessione->data_fine->format('d/m/Y') . '.'];
         }
 
         // L'amministratore non è soggetto al vincolo della finestra di inserimento
@@ -340,6 +347,15 @@ class AppelloController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Giorni di anticipo entro cui è ammesso un preappello (data antecedente
+     * l'inizio della sessione). Configurabile dall'admin, default 14.
+     */
+    private function giorniPreappello(): int
+    {
+        return (int) (Configurazione::query()->value('giorni_preappello') ?? 14);
     }
 
     /**

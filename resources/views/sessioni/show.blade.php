@@ -61,22 +61,21 @@
                         <label for="data_inizio" class="form-label">Dal</label>
                         <input type="date" class="form-control" id="data_inizio" name="data_inizio"
                             value="{{ old('data_inizio') }}"
-                            min="{{ $sessione->data_inizio->format('Y-m-d') }}"
                             max="{{ $sessione->data_fine->format('Y-m-d') }}" required>
                     </div>
                     <div class="col-md-5">
                         <label for="data_fine" class="form-label">Al</label>
                         <input type="date" class="form-control" id="data_fine" name="data_fine"
                             value="{{ old('data_fine') }}"
-                            min="{{ $sessione->data_inizio->format('Y-m-d') }}"
                             max="{{ $sessione->data_fine->format('Y-m-d') }}" required>
                     </div>
                     <div class="col-md-2">
                         <button type="submit" class="btn btn-primary w-100">Aggiungi</button>
                     </div>
                 </div>
-                <p class="form-text mb-0 mt-2">La finestra deve rientrare nel periodo della sessione
-                    ({{ $sessione->data_inizio->format('d/m/Y') }} &ndash; {{ $sessione->data_fine->format('d/m/Y') }}).</p>
+                <p class="form-text mb-0 mt-2">La finestra può aprirsi anche prima dell'inizio della sessione
+                    (per pubblicare le date in anticipo), ma deve terminare entro la fine
+                    ({{ $sessione->data_fine->format('d/m/Y') }}).</p>
             </form>
         </div>
     </div>

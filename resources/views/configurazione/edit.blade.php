@@ -41,6 +41,25 @@
                     <div class="text-danger small mb-3">{{ $message }}</div>
                 @enderror
 
+                <hr>
+
+                <div class="mb-3">
+                    <label for="giorni_preappello" class="form-label fw-semibold">Preappelli</label>
+                    <p class="text-muted small mb-2">
+                        Giorni di anticipo entro cui un docente può fissare un appello <strong>prima</strong> dell'inizio
+                        della sessione, così gli studenti possono organizzarsi per lo studio. Imposta 0 per non ammettere preappelli.
+                    </p>
+                    <div class="input-group" style="max-width: 16rem;">
+                        <input type="number" class="form-control @error('giorni_preappello') is-invalid @enderror"
+                            id="giorni_preappello" name="giorni_preappello" min="0" max="60"
+                            value="{{ old('giorni_preappello', $configurazione->giorni_preappello) }}" required>
+                        <span class="input-group-text">giorni</span>
+                    </div>
+                    @error('giorni_preappello')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
+                </div>
+
                 <button type="submit" class="btn btn-primary">Salva impostazioni</button>
             </form>
         </div>

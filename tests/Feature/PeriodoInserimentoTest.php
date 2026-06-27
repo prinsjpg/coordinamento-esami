@@ -46,15 +46,20 @@ class PeriodoInserimentoTest extends TestCase
         ]);
     }
 
-    public function test_il_periodo_non_puo_iniziare_prima_della_sessione(): void
+    public function test_il_periodo_puo_iniziare_prima_della_sessione(): void
     {
+        // Pubblicazione anticipata: la finestra può aprirsi prima dell'inizio
+        // sessione, purché chiuda entro la fine.
         $response = $this->actingAs($this->admin)->post(route('periodi.store', $this->sessione), [
             'data_inizio' => '2026-05-20',
             'data_fine' => '2026-06-10',
         ]);
 
-        $response->assertSessionHasErrors('data_inizio');
-        $this->assertDatabaseCount('periodi_inserimento', 0);
+        $response->assertRedirect(route('sessioni.show', $this->sessione));
+        $this->assertDatabaseHas('periodi_inserimento', [
+            'sessione_id' => $this->sessione->id,
+            'data_inizio' => '2026-05-20 00:00:00',
+        ]);
     }
 
     public function test_il_periodo_non_puo_terminare_dopo_la_sessione(): void

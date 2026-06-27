@@ -57,6 +57,20 @@ stato della finestra di inserimento della sessione:
 - il **docente** vede i propri insegnamenti da pianificare finché la finestra è
   aperta, in scadenza o appena chiusa.
 
+## Finestre di inserimento e preappelli
+
+Ogni sessione ha una o più **finestre di inserimento**, cioè i periodi in cui i
+docenti possono creare, modificare ed eliminare gli appelli (l'amministratore
+non è soggetto a questo vincolo). Una finestra **può aprirsi anche prima**
+dell'inizio della sessione — così le date si pubblicano in anticipo — ma deve
+chiudersi entro la fine della sessione.
+
+La data di un appello deve cadere nel periodo della sessione, con un'eccezione:
+i **preappelli**. L'amministratore configura un margine (default **14 giorni**,
+impostabile da *Configurazione*) entro cui un appello può precedere l'inizio
+della sessione, utile a far organizzare gli studenti. Gli appelli con data
+antecedente l'inizio sessione sono evidenziati con il badge «preappello».
+
 ## Avvio in locale
 
 Requisiti: PHP 8.3, Composer, Node.js, MySQL.

@@ -194,9 +194,21 @@ class StrutturaDidatticaTest extends TestCase
     {
         $response = $this->actingAs($this->admin())->put(route('configurazione.update'), [
             'modalita_conflitto' => 'warning',
+            'giorni_preappello' => 14,
         ]);
 
         $response->assertRedirect(route('configurazione.edit'));
         $this->assertSame('warning', Configurazione::first()->modalita_conflitto);
+    }
+
+    public function test_admin_aggiorna_i_giorni_di_preappello(): void
+    {
+        $response = $this->actingAs($this->admin())->put(route('configurazione.update'), [
+            'modalita_conflitto' => 'blocco',
+            'giorni_preappello' => 7,
+        ]);
+
+        $response->assertRedirect(route('configurazione.edit'));
+        $this->assertSame(7, Configurazione::first()->giorni_preappello);
     }
 }

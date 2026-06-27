@@ -46,6 +46,9 @@
         @error('data')
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
+        @if (($giorniPreappello ?? 0) > 0)
+            <div class="form-text">Ammessi anche preappelli, fino a {{ $giorniPreappello }} giorni prima dell'inizio della sessione.</div>
+        @endif
     </div>
 
     <div class="col-md-4">
