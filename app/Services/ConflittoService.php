@@ -60,25 +60,34 @@ class ConflittoService
 
     /**
      * Dato un insieme di appelli già caricati, restituisce gli id di quelli in
-     * conflitto con almeno un altro dell'insieme. Utile per evidenziare i
-     * conflitti già presenti (es. salvati in modalità «avviso») nel calendario
-     * e nell'elenco, senza interrogare di nuovo il database.
+     * conflitto con almeno un altro appello. Utile per evidenziare i conflitti
+     * già presenti (es. salvati in modalità «avviso») nel calendario e
+     * nell'elenco, senza interrogare di nuovo il database.
      *
-     * Richiede che la relazione `insegnamento` sia già caricata.
+     * Il confronto avviene contro `$universo`: se omesso coincide con `$appelli`
+     * (il caso dell'admin, che vede tutto). Per il docente, che vede solo i
+     * propri appelli, va passato l'insieme completo come universo, così da
+     * rilevare anche i conflitti con appelli di altri docenti (es. stessa aula).
      *
-     * @param  Collection<int, Appello>  $appelli
+     * Richiede che la relazione `insegnamento` sia già caricata su entrambi.
+     *
+     * @param  Collection<int, Appello>       $appelli  appelli da valutare
+     * @param  Collection<int, Appello>|null  $universo  insieme contro cui confrontare
      * @return Collection<int, int>  id degli appelli in conflitto
      */
-    public function idInConflitto(Collection $appelli): Collection
+    public function idInConflitto(Collection $appelli, ?Collection $universo = null): Collection
     {
-        $lista = $appelli->values();
+        $universo = ($universo ?? $appelli)->values();
         $inConflitto = [];
 
-        for ($i = 0; $i < $lista->count(); $i++) {
-            for ($j = $i + 1; $j < $lista->count(); $j++) {
-                if ($this->sonoInConflitto($lista[$i], $lista[$j])) {
-                    $inConflitto[$lista[$i]->id] = true;
-                    $inConflitto[$lista[$j]->id] = true;
+        foreach ($appelli as $a) {
+            foreach ($universo as $b) {
+                if ($a->id === $b->id) {
+                    continue;
+                }
+                if ($this->sonoInConflitto($a, $b)) {
+                    $inConflitto[$a->id] = true;
+                    break;
                 }
             }
         }
