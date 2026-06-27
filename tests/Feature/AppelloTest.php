@@ -243,6 +243,58 @@ class AppelloTest extends TestCase
         $this->assertDatabaseCount('appelli', 0);
     }
 
+    private function appelloAFinestraChiusa(): Appello
+    {
+        $sessioneChiusa = Sessione::create([
+            'nome' => 'Sessione Chiusa',
+            'data_inizio' => Carbon::today(),
+            'data_fine' => Carbon::today()->addDays(30),
+        ]);
+        $sessioneChiusa->periodiInserimento()->create([
+            'data_inizio' => Carbon::today()->subDays(20),
+            'data_fine' => Carbon::today()->subDays(10),
+        ]);
+
+        return Appello::create($this->datiValidi([
+            'user_id' => $this->docente->id,
+            'sessione_id' => $sessioneChiusa->id,
+        ]));
+    }
+
+    public function test_il_docente_non_puo_eliminare_un_appello_a_finestra_chiusa(): void
+    {
+        $appello = $this->appelloAFinestraChiusa();
+
+        $this->actingAs($this->docente)
+            ->delete(route('appelli.destroy', $appello))
+            ->assertRedirect(route('appelli.index'));
+
+        $this->assertDatabaseHas('appelli', ['id' => $appello->id]);
+    }
+
+    public function test_il_docente_non_puo_aprire_la_modifica_a_finestra_chiusa(): void
+    {
+        $appello = $this->appelloAFinestraChiusa();
+
+        $this->actingAs($this->docente)
+            ->get(route('appelli.edit', $appello))
+            ->assertRedirect(route('appelli.index'));
+    }
+
+    public function test_l_admin_puo_eliminare_un_appello_anche_a_finestra_chiusa(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('amministratore');
+
+        $appello = $this->appelloAFinestraChiusa();
+
+        $this->actingAs($admin)
+            ->delete(route('appelli.destroy', $appello))
+            ->assertRedirect(route('appelli.index'));
+
+        $this->assertDatabaseMissing('appelli', ['id' => $appello->id]);
+    }
+
     public function test_l_admin_vede_tutti_gli_appelli_e_ignora_la_finestra(): void
     {
         $admin = User::factory()->create();
