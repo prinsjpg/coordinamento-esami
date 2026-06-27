@@ -51,11 +51,17 @@
                                 <td>{{ $appello->sessione->nome }}</td>
                                 <td>{{ $appello->aula ?? '—' }}</td>
                                 <td class="text-end">
-                                    <a href="{{ route('appelli.edit', $appello) }}" class="btn btn-sm btn-outline-secondary">
-                                        <i class="bi bi-pencil"></i> Modifica
-                                    </a>
-                                    <x-delete-form :action="route('appelli.destroy', $appello)"
-                                        message="Eliminare questo appello di {{ $appello->insegnamento->nome }} del {{ $appello->data->format('d/m/Y') }}?" />
+                                    @if ($idModificabili->contains($appello->id))
+                                        <a href="{{ route('appelli.edit', $appello) }}" class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-pencil"></i> Modifica
+                                        </a>
+                                        <x-delete-form :action="route('appelli.destroy', $appello)"
+                                            message="Eliminare questo appello di {{ $appello->insegnamento->nome }} del {{ $appello->data->format('d/m/Y') }}?" />
+                                    @else
+                                        <span class="text-muted small" title="Finestra di inserimento chiusa">
+                                            <i class="bi bi-lock"></i> finestra chiusa
+                                        </span>
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach

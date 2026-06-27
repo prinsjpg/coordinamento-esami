@@ -14,9 +14,23 @@ class PeriodoInserimentoController extends Controller
     public function store(Request $request, Sessione $sessione)
     {
         $dati = $request->validate([
-            'data_inizio' => 'required|date',
-            'data_fine' => 'required|date|after_or_equal:data_inizio',
-        ], [], [
+            'data_inizio' => [
+                'required', 'date',
+                'after_or_equal:' . $sessione->data_inizio->format('Y-m-d'),
+                'before_or_equal:' . $sessione->data_fine->format('Y-m-d'),
+            ],
+            'data_fine' => [
+                'required', 'date', 'after_or_equal:data_inizio',
+                'before_or_equal:' . $sessione->data_fine->format('Y-m-d'),
+            ],
+        ], [
+            'data_inizio.after_or_equal' => 'La finestra deve iniziare entro il periodo della sessione (dal '
+                . $sessione->data_inizio->format('d/m/Y') . ').',
+            'data_inizio.before_or_equal' => 'La finestra deve iniziare entro il periodo della sessione (fino al '
+                . $sessione->data_fine->format('d/m/Y') . ').',
+            'data_fine.before_or_equal' => 'La finestra deve terminare entro il periodo della sessione (fino al '
+                . $sessione->data_fine->format('d/m/Y') . ').',
+        ], [
             'data_inizio' => 'data di inizio',
             'data_fine' => 'data di fine',
         ]);

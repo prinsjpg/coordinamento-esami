@@ -22,10 +22,10 @@ class AppelloController extends Controller
         // L'amministratore vede tutti gli appelli, il docente quelli dei propri
         // insegnamenti (compresi quelli inseriti da un co-titolare).
         if ($user->hasRole('amministratore')) {
-            $appelli = Appello::with(['insegnamento.corsoStudio', 'sessione', 'docente'])
+            $appelli = Appello::with(['insegnamento.corsoStudio', 'sessione.periodiInserimento', 'docente'])
                 ->orderBy('data')->orderBy('ora_inizio')->get();
         } else {
-            $appelli = Appello::with(['insegnamento.corsoStudio', 'sessione', 'docente'])
+            $appelli = Appello::with(['insegnamento.corsoStudio', 'sessione.periodiInserimento', 'docente'])
                 ->visibiliAlDocente($user)
                 ->orderBy('data')->orderBy('ora_inizio')->get();
         }
@@ -34,6 +34,7 @@ class AppelloController extends Controller
             'appelli' => $appelli,
             'isAdmin' => $user->hasRole('amministratore'),
             'idConflitto' => $conflitti->idInConflitto($appelli),
+            'idModificabili' => $this->idModificabili($appelli, $user),
         ]);
     }
 
@@ -84,6 +85,10 @@ class AppelloController extends Controller
     public function edit(Request $request, Appello $appello)
     {
         $this->autorizza($request->user(), $appello);
+
+        if ($blocco = $this->bloccoFinestraChiusa($request->user(), $appello)) {
+            return $blocco;
+        }
 
         return view('appelli.edit', [
             'appello' => $appello,
@@ -195,6 +200,10 @@ class AppelloController extends Controller
     {
         $this->autorizza($request->user(), $appello);
 
+        if ($blocco = $this->bloccoFinestraChiusa($request->user(), $appello)) {
+            return $blocco;
+        }
+
         $appello->delete();
 
         return redirect()->route('appelli.index')->with('success', 'Appello eliminato.');
@@ -298,14 +307,65 @@ class AppelloController extends Controller
             return null;
         }
 
+        if (! $this->finestraAperta($sessione)) {
+            return ['sessione_id' => 'La finestra di inserimento per questa sessione non è attualmente aperta.'];
+        }
+
+        return null;
+    }
+
+    /**
+     * Id degli appelli che l'utente può ancora modificare/eliminare: tutti per
+     * l'admin, per il docente solo quelli con la finestra di inserimento aperta.
+     * Lavora sui periodi già caricati in memoria, senza query aggiuntive.
+     *
+     * @param  \Illuminate\Support\Collection<int, Appello>  $appelli
+     * @return \Illuminate\Support\Collection<int, int>
+     */
+    private function idModificabili($appelli, $user)
+    {
+        if ($user->hasRole('amministratore')) {
+            return $appelli->pluck('id');
+        }
+
         $oggi = Carbon::today();
-        $finestraAperta = $sessione->periodiInserimento()
+
+        return $appelli->filter(function (Appello $appello) use ($oggi) {
+            return $appello->sessione !== null
+                && $appello->sessione->periodiInserimento->contains(
+                    fn ($periodo) => $periodo->data_inizio->lte($oggi) && $periodo->data_fine->gte($oggi)
+                );
+        })->pluck('id');
+    }
+
+    /**
+     * Indica se la finestra di inserimento della sessione è aperta oggi.
+     */
+    private function finestraAperta(Sessione $sessione): bool
+    {
+        $oggi = Carbon::today();
+
+        return $sessione->periodiInserimento()
             ->whereDate('data_inizio', '<=', $oggi)
             ->whereDate('data_fine', '>=', $oggi)
             ->exists();
+    }
 
-        if (! $finestraAperta) {
-            return ['sessione_id' => 'La finestra di inserimento per questa sessione non è attualmente aperta.'];
+    /**
+     * Il docente può modificare ed eliminare un appello solo finché la finestra
+     * di inserimento della sua sessione è aperta; l'admin non è soggetto al
+     * vincolo. Restituisce un redirect di blocco oppure null se l'operazione è
+     * consentita.
+     */
+    private function bloccoFinestraChiusa($user, Appello $appello)
+    {
+        if ($user->hasRole('amministratore')) {
+            return null;
+        }
+
+        if ($appello->sessione !== null && ! $this->finestraAperta($appello->sessione)) {
+            return redirect()->route('appelli.index')->with('error',
+                'La finestra di inserimento per questa sessione è chiusa: non puoi più modificare o eliminare questo appello.');
         }
 
         return null;
