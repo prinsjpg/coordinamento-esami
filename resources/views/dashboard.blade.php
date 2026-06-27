@@ -256,7 +256,7 @@
                                     @if ($idConflitto->contains($appello->id))
                                         <span class="badge text-bg-danger ms-1" title="In conflitto con un altro appello"><i class="bi bi-exclamation-triangle"></i> conflitto</span>
                                     @endif
-                                    <small class="text-muted d-block">{{ $appello->aula ?? 'Aula da definire' }}</small>
+                                    <small class="text-muted d-block">Aula: {{ $appello->aula ?? '—' }}</small>
                                 </span>
                                 <span class="badge text-bg-primary">{{ $appello->data->format('d/m/Y') }}</span>
                             </li>
