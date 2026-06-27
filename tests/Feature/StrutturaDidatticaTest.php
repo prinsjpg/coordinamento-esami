@@ -160,13 +160,55 @@ class StrutturaDidatticaTest extends TestCase
         $response->assertSee('Verranno eliminati anche 1 finestra di inserimento e 1 appello.');
     }
 
+    public function test_il_filtro_per_corso_mostra_solo_gli_insegnamenti_di_quel_corso(): void
+    {
+        $informatica = CorsoStudio::create(['nome' => 'Informatica']);
+        $matematica = CorsoStudio::create(['nome' => 'Matematica']);
+
+        Insegnamento::create(['nome' => 'Programmazione', 'anno_frequenza' => 1, 'corso_studio_id' => $informatica->id]);
+        Insegnamento::create(['nome' => 'Analisi Matematica', 'anno_frequenza' => 1, 'corso_studio_id' => $matematica->id]);
+
+        $response = $this->actingAs($this->admin())
+            ->get(route('insegnamenti.index', ['corso' => $informatica->id]));
+
+        $response->assertOk();
+        $response->assertSee('Programmazione');
+        $response->assertDontSee('Analisi Matematica');
+    }
+
+    public function test_la_ricerca_per_nome_filtra_gli_insegnamenti(): void
+    {
+        $corso = CorsoStudio::create(['nome' => 'Informatica']);
+        Insegnamento::create(['nome' => 'Programmazione', 'anno_frequenza' => 1, 'corso_studio_id' => $corso->id]);
+        Insegnamento::create(['nome' => 'Basi di Dati', 'anno_frequenza' => 2, 'corso_studio_id' => $corso->id]);
+
+        $response = $this->actingAs($this->admin())
+            ->get(route('insegnamenti.index', ['q' => 'Basi']));
+
+        $response->assertOk();
+        $response->assertSee('Basi di Dati');
+        $response->assertDontSee('Programmazione');
+    }
+
     public function test_admin_aggiorna_la_modalita_dei_conflitti(): void
     {
         $response = $this->actingAs($this->admin())->put(route('configurazione.update'), [
             'modalita_conflitto' => 'warning',
+            'giorni_preappello' => 14,
         ]);
 
         $response->assertRedirect(route('configurazione.edit'));
         $this->assertSame('warning', Configurazione::first()->modalita_conflitto);
+    }
+
+    public function test_admin_aggiorna_i_giorni_di_preappello(): void
+    {
+        $response = $this->actingAs($this->admin())->put(route('configurazione.update'), [
+            'modalita_conflitto' => 'blocco',
+            'giorni_preappello' => 7,
+        ]);
+
+        $response->assertRedirect(route('configurazione.edit'));
+        $this->assertSame(7, Configurazione::first()->giorni_preappello);
     }
 }

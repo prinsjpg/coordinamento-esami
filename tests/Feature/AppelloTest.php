@@ -229,6 +229,52 @@ class AppelloTest extends TestCase
         $response->assertSee('conflitto');
     }
 
+    private function sessioneFutura(): Sessione
+    {
+        // Sessione che inizia tra 20 giorni, con finestra di inserimento già
+        // aperta oggi: utile per provare i preappelli.
+        $sessione = Sessione::create([
+            'nome' => 'Futura',
+            'data_inizio' => Carbon::today()->addDays(20),
+            'data_fine' => Carbon::today()->addDays(50),
+        ]);
+        $sessione->periodiInserimento()->create([
+            'data_inizio' => Carbon::today()->subDay(),
+            'data_fine' => Carbon::today()->addDays(50),
+        ]);
+
+        return $sessione;
+    }
+
+    public function test_il_docente_puo_fissare_un_preappello_entro_il_margine(): void
+    {
+        $sessione = $this->sessioneFutura();
+
+        // Margine default 14 giorni: una data 5 giorni prima dell'inizio sessione
+        // (today+15) è un preappello ammesso. today è un lunedì → today+15 feriale.
+        $response = $this->actingAs($this->docente)->post(route('appelli.store'), $this->datiValidi([
+            'sessione_id' => $sessione->id,
+            'data' => Carbon::today()->addDays(15)->format('Y-m-d'),
+        ]));
+
+        $response->assertRedirect(route('appelli.index'));
+        $this->assertDatabaseCount('appelli', 1);
+    }
+
+    public function test_il_docente_non_puo_fissare_un_appello_oltre_il_margine_preappello(): void
+    {
+        $sessione = $this->sessioneFutura();
+
+        // today+3 è prima di (inizio sessione − 14 = today+6): oltre il margine.
+        $response = $this->actingAs($this->docente)->post(route('appelli.store'), $this->datiValidi([
+            'sessione_id' => $sessione->id,
+            'data' => Carbon::today()->addDays(3)->format('Y-m-d'),
+        ]));
+
+        $response->assertSessionHasErrors('data');
+        $this->assertDatabaseCount('appelli', 0);
+    }
+
     public function test_il_filtro_mostra_solo_gli_appelli_in_conflitto(): void
     {
         // Appello senza conflitti

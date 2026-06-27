@@ -47,8 +47,14 @@
                     <tbody>
                         @foreach ($appelli as $appello)
                             @php($inConflitto = $idConflitto->contains($appello->id))
+                            @php($preappello = $appello->data->lt($appello->sessione->data_inizio))
                             <tr class="{{ $inConflitto ? 'table-danger' : '' }}">
-                                <td>{{ $appello->data->format('d/m/Y') }}</td>
+                                <td>
+                                    {{ $appello->data->format('d/m/Y') }}
+                                    @if ($preappello)
+                                        <span class="badge text-bg-info ms-1" title="Data precedente l'inizio della sessione">preappello</span>
+                                    @endif
+                                </td>
                                 <td>
                                     {{ \Illuminate\Support\Str::substr($appello->ora_inizio, 0, 5) }}&ndash;{{ \Illuminate\Support\Str::substr($appello->ora_fine, 0, 5) }}
                                     @if ($inConflitto)

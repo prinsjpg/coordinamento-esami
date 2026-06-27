@@ -24,8 +24,10 @@ class ConfigurazioneController extends Controller
     {
         $dati = $request->validate([
             'modalita_conflitto' => 'required|in:blocco,warning',
+            'giorni_preappello' => 'required|integer|min:0|max:60',
         ], [], [
             'modalita_conflitto' => 'modalità di gestione dei conflitti',
+            'giorni_preappello' => 'giorni di anticipo per i preappelli',
         ]);
 
         $configurazione = Configurazione::firstOrCreate([], ['modalita_conflitto' => 'blocco']);

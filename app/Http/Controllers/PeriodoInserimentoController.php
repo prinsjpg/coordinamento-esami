@@ -13,10 +13,12 @@ class PeriodoInserimentoController extends Controller
      */
     public function store(Request $request, Sessione $sessione)
     {
+        // La finestra può aprirsi anche prima dell'inizio della sessione (così i
+        // docenti pubblicano le date in anticipo), ma deve chiudersi entro la
+        // fine della sessione: oltre quella data non avrebbe senso inserire.
         $dati = $request->validate([
             'data_inizio' => [
                 'required', 'date',
-                'after_or_equal:' . $sessione->data_inizio->format('Y-m-d'),
                 'before_or_equal:' . $sessione->data_fine->format('Y-m-d'),
             ],
             'data_fine' => [
@@ -24,11 +26,9 @@ class PeriodoInserimentoController extends Controller
                 'before_or_equal:' . $sessione->data_fine->format('Y-m-d'),
             ],
         ], [
-            'data_inizio.after_or_equal' => 'La finestra deve iniziare entro il periodo della sessione (dal '
-                . $sessione->data_inizio->format('d/m/Y') . ').',
-            'data_inizio.before_or_equal' => 'La finestra deve iniziare entro il periodo della sessione (fino al '
+            'data_inizio.before_or_equal' => 'La finestra deve aprirsi entro la fine della sessione (entro il '
                 . $sessione->data_fine->format('d/m/Y') . ').',
-            'data_fine.before_or_equal' => 'La finestra deve terminare entro il periodo della sessione (fino al '
+            'data_fine.before_or_equal' => 'La finestra deve terminare entro la fine della sessione (entro il '
                 . $sessione->data_fine->format('d/m/Y') . ').',
         ], [
             'data_inizio' => 'data di inizio',

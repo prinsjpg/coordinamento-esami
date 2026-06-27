@@ -66,6 +66,9 @@
                                         @if ($inConflitto)
                                             <span class="badge text-bg-danger ms-1" title="In conflitto con un altro appello"><i class="bi bi-exclamation-triangle"></i> conflitto</span>
                                         @endif
+                                        @if ($appello->data->lt($sessioneSelezionata->data_inizio))
+                                            <span class="badge text-bg-info ms-1" title="Data precedente l'inizio della sessione">preappello</span>
+                                        @endif
                                     </td>
                                     <td class="text-center">{{ $appello->insegnamento->anno_frequenza }}°</td>
                                     <td>{{ $appello->insegnamento->corsoStudio->nome }}</td>
