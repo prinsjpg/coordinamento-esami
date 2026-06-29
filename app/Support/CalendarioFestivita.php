@@ -29,6 +29,25 @@ class CalendarioFestivita
     }
 
     /**
+     * Elenco delle festività italiane di un anno, nel formato 'Y-m-d' => nome.
+     * Utile per segnalare i giorni festivi lato client.
+     *
+     * @return array<string, string>
+     */
+    public static function festivitaDellAnno(int $anno): array
+    {
+        $feste = [];
+
+        foreach (self::FESTE_FISSE as $meseGiorno => $nome) {
+            $feste["{$anno}-{$meseGiorno}"] = $nome;
+        }
+
+        $feste[self::pasqua($anno)->addDay()->format('Y-m-d')] = 'Lunedì dell\'Angelo';
+
+        return $feste;
+    }
+
+    /**
      * Restituisce il nome della festività italiana corrispondente alla data,
      * oppure null se non è una festività.
      */

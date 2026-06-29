@@ -198,6 +198,24 @@ class AppelloTest extends TestCase
         $this->actingAs($this->docente)->get(route('appelli.edit', $appello))->assertOk();
     }
 
+    public function test_il_docente_rimosso_dall_incarico_non_gestisce_piu_i_propri_appelli(): void
+    {
+        // Appello creato dal docente su un insegnamento di cui è titolare.
+        $appello = Appello::create($this->datiValidi([
+            'user_id' => $this->docente->id,
+            'aula' => 'AppelloDelDocente',
+        ]));
+
+        // L'amministratore lo rimuove dalla titolarità dell'insegnamento.
+        $this->docente->insegnamenti()->detach($this->insegnamento->id);
+
+        // Pur essendone l'autore, non lo vede più in elenco né può gestirlo.
+        $this->actingAs($this->docente)->get(route('appelli.index'))->assertDontSee('AppelloDelDocente');
+        $this->actingAs($this->docente)->get(route('appelli.edit', $appello))->assertForbidden();
+        $this->actingAs($this->docente)->delete(route('appelli.destroy', $appello))->assertForbidden();
+        $this->assertDatabaseHas('appelli', ['id' => $appello->id]);
+    }
+
     public function test_il_docente_vede_in_elenco_il_conflitto_con_un_appello_altrui(): void
     {
         // Mio appello (anno 1) in un'aula specifica

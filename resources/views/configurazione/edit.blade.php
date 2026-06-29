@@ -11,11 +11,16 @@
 @section('content')
     <div class="card" style="max-width: 40rem;">
         <div class="card-body">
-            <p class="text-muted">
-                Due appelli sono in conflitto quando riguardano insegnamenti dello <strong>stesso anno di
-                frequenza</strong> e si sovrappongono nella stessa data e fascia oraria. Scegli come gestire i conflitti
-                al momento del salvataggio di un appello.
+            <p class="text-muted mb-2">
+                Due appelli sono in conflitto quando cadono nella <strong>stessa data</strong>, le
+                <strong>fasce orarie si sovrappongono</strong> e si verifica almeno una di queste condizioni:
             </p>
+            <ul class="text-muted">
+                <li><strong>conflitto studenti</strong> — gli insegnamenti appartengono allo <strong>stesso corso di
+                    studio</strong> e allo <strong>stesso anno di frequenza</strong>;</li>
+                <li><strong>conflitto aula</strong> — risulterebbe occupata la <strong>stessa aula</strong>.</li>
+            </ul>
+            <p class="text-muted">Scegli come gestire i conflitti al momento del salvataggio di un appello.</p>
 
             <form method="POST" action="{{ route('configurazione.update') }}">
                 @csrf

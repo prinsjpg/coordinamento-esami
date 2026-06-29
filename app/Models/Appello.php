@@ -48,14 +48,13 @@ class Appello extends Model
     }
 
     /**
-     * Appelli "propri" di un docente: quelli relativi ai suoi insegnamenti
-     * (anche se creati da un co-titolare) oppure creati da lui.
+     * Appelli "propri" di un docente: quelli relativi agli insegnamenti di cui è
+     * titolare (anche se creati da un co-titolare). La proprietà segue la
+     * titolarità dell'insegnamento, non chi ha materialmente creato l'appello:
+     * se un docente viene rimosso dall'incarico, smette di vederli e gestirli.
      */
     public function scopeVisibiliAlDocente(Builder $query, User $docente): Builder
     {
-        return $query->where(function (Builder $q) use ($docente) {
-            $q->whereHas('insegnamento.docenti', fn (Builder $d) => $d->whereKey($docente->id))
-                ->orWhere('user_id', $docente->id);
-        });
+        return $query->whereHas('insegnamento.docenti', fn (Builder $d) => $d->whereKey($docente->id));
     }
 }
