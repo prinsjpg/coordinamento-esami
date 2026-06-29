@@ -73,6 +73,7 @@ class AppelloController extends Controller
             'insegnamenti' => $this->insegnamentiDisponibili($request->user()),
             'sessioni' => $this->sessioniDisponibili($request->user()),
             'giorniPreappello' => $this->giorniPreappello(),
+            'festivita' => $this->festivita(),
         ]);
     }
 
@@ -124,6 +125,7 @@ class AppelloController extends Controller
             'insegnamenti' => $this->insegnamentiDisponibili($request->user()),
             'sessioni' => $this->sessioniDisponibili($request->user(), $appello->sessione_id),
             'giorniPreappello' => $this->giorniPreappello(),
+            'festivita' => $this->festivita(),
         ]);
     }
 
@@ -276,7 +278,9 @@ class AppelloController extends Controller
 
     /**
      * Verifica che l'utente possa gestire questo appello: l'admin sempre, il
-     * docente se è titolare dell'insegnamento o ne è l'autore.
+     * docente solo se è titolare dell'insegnamento. La proprietà segue la
+     * titolarità, non chi ha creato l'appello: un docente rimosso dall'incarico
+     * perde l'accesso anche agli appelli che aveva inserito di persona.
      */
     private function autorizza($user, Appello $appello): void
     {
@@ -286,7 +290,7 @@ class AppelloController extends Controller
 
         $titolare = $user->insegnamenti()->whereKey($appello->insegnamento_id)->exists();
 
-        if (! $titolare && $appello->user_id !== $user->id) {
+        if (! $titolare) {
             abort(403);
         }
     }
@@ -356,6 +360,21 @@ class AppelloController extends Controller
     private function giorniPreappello(): int
     {
         return (int) (Configurazione::query()->value('giorni_preappello') ?? 14);
+    }
+
+    /**
+     * Festività italiane dell'anno corrente e dei due successivi, nel formato
+     * 'Y-m-d' => nome, così il form può segnalarle in tempo reale lato client.
+     *
+     * @return array<string, string>
+     */
+    private function festivita(): array
+    {
+        $anno = (int) Carbon::today()->year;
+
+        return CalendarioFestivita::festivitaDellAnno($anno)
+            + CalendarioFestivita::festivitaDellAnno($anno + 1)
+            + CalendarioFestivita::festivitaDellAnno($anno + 2);
     }
 
     /**

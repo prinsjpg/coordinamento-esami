@@ -154,10 +154,11 @@
             });
         }
 
-        // Avviso immediato se la data scelta cade nel weekend
+        // Avviso immediato se la data scelta cade nel weekend o in una festività
         const $avvisoData = $('#avviso-data');
+        const FESTIVITA = @json($festivita ?? []);
 
-        function verificaWeekend() {
+        function verificaGiorno() {
             const valore = $('#data').val();
             if (!valore) { $avvisoData.empty(); return; }
 
@@ -166,16 +167,18 @@
 
             if (giorno === 0 || giorno === 6) {
                 $avvisoData.html('<div class="alert alert-warning mb-0 py-2"><i class="bi bi-exclamation-triangle"></i> La data scelta cade di sabato o domenica: non è possibile fissare un appello nel weekend.</div>');
+            } else if (FESTIVITA[valore]) {
+                $avvisoData.html('<div class="alert alert-warning mb-0 py-2"><i class="bi bi-exclamation-triangle"></i> La data scelta è un giorno festivo (' + FESTIVITA[valore] + '): non è possibile fissare un appello.</div>');
             } else {
                 $avvisoData.empty();
             }
         }
 
-        $('#data').on('change', verificaWeekend);
+        $('#data').on('change', verificaGiorno);
         $campi.on('change', verificaConflitto);
 
         // Verifica anche allo apertura, se il form è già compilato (modifica)
-        verificaWeekend();
+        verificaGiorno();
         verificaConflitto();
     });
 </script>
