@@ -9,7 +9,7 @@ Progetto per il corso di **Programmazione Web**.
 
 ## Tecnologie
 
-- **PHP 8.3** e **Laravel 13**
+- **PHP 8.3 o superiore** e **Laravel 13**
 - **MySQL** (database `esami_coordinamento`)
 - **Laravel Jetstream** (Livewire) per autenticazione e profilo
 - **Spatie laravel-permission** per ruoli e permessi
@@ -41,11 +41,30 @@ La modalità di gestione è configurabile dall'amministratore:
 - **Avviso**: consente il salvataggio segnalando il conflitto.
 
 Gli appelli già in conflitto (tipicamente salvati in modalità «avviso») sono
-inoltre **evidenziati** nel calendario e nell'elenco, così l'amministratore può
-individuarli e intervenire.
+inoltre **evidenziati** nel calendario e nell'elenco, e l'elenco offre un filtro
+**«solo conflitti»** per isolarli e intervenire.
 
 La visibilità è differenziata: il docente vede solo data, corso, anno e fascia
 occupati degli appelli altrui, mentre l'amministratore vede tutti i dettagli.
+I conflitti del docente sono però calcolati sull'insieme completo degli appelli,
+non solo sui suoi: altrimenti una doppia prenotazione d'aula sfuggirebbe.
+
+## Calendario
+
+Il **calendario** mostra gli appelli di una sessione raggruppati per data, con
+la sessione selezionabile (di default la più recente). Vale la stessa
+differenziazione di visibilità dell'elenco, con i conflitti evidenziati.
+
+## Vincoli sulle date degli appelli
+
+Un appello **non può** essere fissato di **sabato o domenica**, né in un
+**giorno festivo** italiano. Le festività a data fissa sono elencate in
+`app/Support/CalendarioFestivita.php`, mentre il **Lunedì dell'Angelo** è
+calcolato ogni anno a partire dalla data della Pasqua (algoritmo di Gauss/Meeus).
+
+Il vincolo è applicato lato server alla creazione e alla modifica; il form
+anticipa la segnalazione lato client, avvisando appena si sceglie una data non
+valida.
 
 ## Monitoraggio delle scadenze
 
@@ -71,9 +90,21 @@ impostabile da *Configurazione*) entro cui un appello può precedere l'inizio
 della sessione, utile a far organizzare gli studenti. Gli appelli con data
 antecedente l'inizio sessione sono evidenziati con il badge «preappello».
 
+## Struttura didattica
+
+L'elenco degli insegnamenti si può filtrare per **corso di studio**, per **anno
+di frequenza** e per **nome** (ricerca testuale); i filtri si applicano da soli,
+senza pulsante di conferma.
+
+Le eliminazioni sono **a cascata**: rimuovere un corso di studio, un
+insegnamento o una sessione elimina anche gli appelli collegati. I messaggi di
+conferma indicano quanti appelli verranno persi, così l'operazione non è mai una
+sorpresa. Rimuovere un docente da un insegnamento, invece, non tocca gli appelli
+ma gli revoca l'accesso ad essi.
+
 ## Avvio in locale
 
-Requisiti: PHP 8.3, Composer, Node.js, MySQL.
+Requisiti: PHP 8.3 o superiore, Composer, Node.js, MySQL.
 
 ```bash
 # 1. Dipendenze
@@ -85,7 +116,7 @@ cp .env.example .env
 php artisan key:generate
 # configurare in .env: DB_DATABASE=esami_coordinamento, DB_USERNAME, DB_PASSWORD
 
-# 3. Database e dati di esempio
+# 3. Database e dati di esempio (il server MySQL dev'essere già avviato)
 php artisan migrate --seed
 
 # 4. Avvio
@@ -93,6 +124,10 @@ php artisan serve
 ```
 
 L'applicazione è raggiungibile su `http://127.0.0.1:8000`.
+
+> **Nota:** MySQL deve restare attivo anche durante l'uso. Le sessioni sono
+> salvate sul database (`SESSION_DRIVER=database`), quindi con il server spento
+> ogni pagina risponde con un errore 500.
 
 ## Utenti di esempio (creati dal seeder)
 
