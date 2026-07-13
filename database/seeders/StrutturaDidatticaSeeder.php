@@ -70,13 +70,16 @@ class StrutturaDidatticaSeeder extends Seeder
         $docente1->insegnamenti()->attach([$programmazione->id, $basiDati->id, $reti->id]);
         $docente2->insegnamenti()->attach([$algoritmi->id, $analisi->id, $algebra->id]);
 
-        // Sessione e finestra di inserimento. La finestra chiude tra pochi giorni,
-        // così il monitoraggio mostra lo stato "in scadenza".
+        // Sessione e finestra di inserimento. Le date rispettano i vincoli del
+        // form, così gli appelli seminati restano modificabili dall'interfaccia:
+        // la sessione inizia nel futuro e dura ben più di una settimana.
         $sessione = Sessione::create([
             'nome' => 'Sessione Estiva',
-            'data_inizio' => Carbon::today()->subDays(10),
+            'data_inizio' => Carbon::today()->addDays(10),
             'data_fine' => Carbon::today()->addDays(50),
         ]);
+        // La finestra precede la sessione ed è aperta oggi (così i docenti possono
+        // inserire); chiude tra pochi giorni, e il monitoraggio la segnala "in scadenza".
         PeriodoInserimento::create([
             'sessione_id' => $sessione->id,
             'data_inizio' => Carbon::today()->subDays(3),
@@ -84,7 +87,9 @@ class StrutturaDidatticaSeeder extends Seeder
         ]);
 
         // Appelli di esempio: si parte da oggi + 20 giorni, spostandosi al primo
-        // giorno feriale (gli appelli non possono cadere nel weekend o nelle festività)
+        // giorno feriale (gli appelli non possono cadere nel weekend o nelle festività).
+        // Cade dentro la sessione (oggi+10 .. oggi+50) e gli orari stanno nella
+        // fascia 08:00-18:00, quindi ogni appello è ri-salvabile dal form.
         $giorno = Carbon::today()->addDays(20);
         while (! CalendarioFestivita::eLavorativo($giorno)) {
             $giorno->addDay();
