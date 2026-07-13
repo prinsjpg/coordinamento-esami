@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Sessione;
+use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class SessioneController extends Controller
 {
@@ -59,15 +61,42 @@ class SessioneController extends Controller
     }
 
     /**
+     * Giorni minimi di durata di una sessione (una settimana, estremi inclusi).
+     */
+    private const DURATA_MINIMA_GIORNI = 7;
+
+    /**
      * Regole di validazione condivise tra creazione e modifica.
      */
     private function validateRequest(Request $request): array
     {
         return $request->validate([
             'nome' => 'required|string|max:255',
-            'data_inizio' => 'required|date',
-            'data_fine' => 'required|date|after_or_equal:data_inizio',
-        ], [], [
+            'data_inizio' => ['required', 'date', 'after:today'],
+            'data_fine' => [
+                'required',
+                'date',
+                'after_or_equal:data_inizio',
+                // La durata si conta con gli estremi inclusi: dal 1 al 7 è una settimana.
+                function (string $attributo, mixed $valore, Closure $fail) use ($request) {
+                    $inizio = $request->input('data_inizio');
+
+                    if (! $inizio || ! strtotime($inizio)) {
+                        return; // data di inizio mancante o non valida: la segnala la sua regola
+                    }
+
+                    $minima = Carbon::parse($inizio)->addDays(self::DURATA_MINIMA_GIORNI - 1);
+
+                    if (Carbon::parse($valore)->lt($minima)) {
+                        $fail('La sessione deve durare almeno una settimana: la data di fine non può precedere il '
+                            . $minima->format('d/m/Y') . '.');
+                    }
+                },
+            ],
+        ], [
+            'data_inizio.after' => 'La sessione deve iniziare da domani in poi.',
+            'data_fine.after_or_equal' => 'La data di fine non può precedere quella di inizio.',
+        ], [
             'data_inizio' => 'data di inizio',
             'data_fine' => 'data di fine',
         ]);

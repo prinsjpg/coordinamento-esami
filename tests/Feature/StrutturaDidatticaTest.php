@@ -160,6 +160,71 @@ class StrutturaDidatticaTest extends TestCase
         $response->assertSee('Verranno eliminati anche 1 finestra di inserimento e 1 appello.');
     }
 
+    private function datiSessione(array $override = []): array
+    {
+        return array_merge([
+            'nome' => 'Sessione Estiva',
+            'data_inizio' => now()->addDays(10)->format('Y-m-d'),
+            'data_fine' => now()->addDays(40)->format('Y-m-d'),
+        ], $override);
+    }
+
+    public function test_admin_crea_una_sessione_valida(): void
+    {
+        $response = $this->actingAs($this->admin())->post(route('sessioni.store'), $this->datiSessione());
+
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('sessioni', ['nome' => 'Sessione Estiva']);
+    }
+
+    public function test_la_sessione_non_puo_iniziare_oggi_o_nel_passato(): void
+    {
+        foreach ([now(), now()->subDay()] as $inizio) {
+            $response = $this->actingAs($this->admin())->post(route('sessioni.store'), $this->datiSessione([
+                'data_inizio' => $inizio->format('Y-m-d'),
+            ]));
+
+            $response->assertSessionHasErrors('data_inizio');
+        }
+
+        $this->assertDatabaseCount('sessioni', 0);
+    }
+
+    public function test_la_sessione_non_puo_durare_meno_di_una_settimana(): void
+    {
+        // 5 giorni inclusi gli estremi: sotto la soglia
+        $response = $this->actingAs($this->admin())->post(route('sessioni.store'), $this->datiSessione([
+            'data_inizio' => now()->addDays(10)->format('Y-m-d'),
+            'data_fine' => now()->addDays(14)->format('Y-m-d'),
+        ]));
+
+        $response->assertSessionHasErrors('data_fine');
+        $this->assertDatabaseCount('sessioni', 0);
+    }
+
+    public function test_la_sessione_lunga_esattamente_una_settimana_e_accettata(): void
+    {
+        // 7 giorni inclusi gli estremi: il minimo consentito
+        $response = $this->actingAs($this->admin())->post(route('sessioni.store'), $this->datiSessione([
+            'data_inizio' => now()->addDays(10)->format('Y-m-d'),
+            'data_fine' => now()->addDays(16)->format('Y-m-d'),
+        ]));
+
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('sessioni', 1);
+    }
+
+    public function test_la_data_di_fine_non_puo_precedere_quella_di_inizio(): void
+    {
+        $response = $this->actingAs($this->admin())->post(route('sessioni.store'), $this->datiSessione([
+            'data_inizio' => now()->addDays(20)->format('Y-m-d'),
+            'data_fine' => now()->addDays(10)->format('Y-m-d'),
+        ]));
+
+        $response->assertSessionHasErrors('data_fine');
+        $this->assertDatabaseCount('sessioni', 0);
+    }
+
     public function test_il_filtro_per_corso_mostra_solo_gli_insegnamenti_di_quel_corso(): void
     {
         $informatica = CorsoStudio::create(['nome' => 'Informatica']);
