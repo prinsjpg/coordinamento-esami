@@ -55,16 +55,20 @@ Il **calendario** mostra gli appelli di una sessione raggruppati per data, con
 la sessione selezionabile (di default la più recente). Vale la stessa
 differenziazione di visibilità dell'elenco, con i conflitti evidenziati.
 
-## Vincoli sulle date degli appelli
+## Vincoli su date e orari degli appelli
 
 Un appello **non può** essere fissato di **sabato o domenica**, né in un
 **giorno festivo** italiano. Le festività a data fissa sono elencate in
 `app/Support/CalendarioFestivita.php`, mentre il **Lunedì dell'Angelo** è
 calcolato ogni anno a partire dalla data della Pasqua (algoritmo di Gauss/Meeus).
 
-Il vincolo è applicato lato server alla creazione e alla modifica; il form
-anticipa la segnalazione lato client, avvisando appena si sceglie una data non
-valida.
+L'appello deve inoltre svolgersi nella **fascia oraria 08:00–18:00**: l'ora di
+inizio non può precedere le 08:00 e l'ora di fine non può superare le 18:00.
+
+Entrambi i vincoli sono applicati **lato server** alla creazione e alla modifica,
+e valgono anche per l'amministratore. Il form li anticipa lato client: la data
+non valida viene segnalata appena scelta, mentre i campi orario sono limitati con
+gli attributi `min`/`max`.
 
 ## Monitoraggio delle scadenze
 
