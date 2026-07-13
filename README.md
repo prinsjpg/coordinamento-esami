@@ -70,6 +70,22 @@ e valgono anche per l'amministratore. Il form li anticipa lato client: la data
 non valida viene segnalata appena scelta, mentre i campi orario sono limitati con
 gli attributi `min`/`max`.
 
+## Vincoli sulle date delle sessioni
+
+Una sessione **deve iniziare da domani in poi** — non è possibile crearne una che
+parta nel passato o nel giorno stesso — e **deve durare almeno una settimana**,
+contando gli estremi inclusi: dal 10 al 16 sono sette giorni, il minimo ammesso.
+
+La durata minima è verificata con una regola a chiusura in
+`SessioneController::validateRequest()`, perché le regole native di Laravel sanno
+confrontare due campi fra loro (`after_or_equal:data_inizio`) ma non un campo più
+un intervallo. Il form limita i campi con l'attributo `min` e sposta il minimo
+della data di fine in base all'inizio scelto.
+
+I dati del seeder rispettano gli stessi vincoli, così un appello di esempio resta
+modificabile dal form: lo verifica `tests/Feature/SeederCoerenzaTest.php`,
+ri-salvando ogni record seminato attraverso i controller.
+
 ## Monitoraggio delle scadenze
 
 La dashboard segnala gli insegnamenti ancora **privi di appello** in base allo
