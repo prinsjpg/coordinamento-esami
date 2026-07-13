@@ -306,13 +306,15 @@ class AppelloController extends Controller
             'insegnamento_id' => ['required', Rule::in($insegnamentiPermessi)],
             'sessione_id' => ['required', 'exists:sessioni,id'],
             'data' => ['required', 'date', 'after_or_equal:today'],
-            'ora_inizio' => ['required', 'date_format:H:i'],
-            'ora_fine' => ['required', 'date_format:H:i', 'after:ora_inizio'],
+            'ora_inizio' => ['required', 'date_format:H:i', 'after_or_equal:08:00'],
+            'ora_fine' => ['required', 'date_format:H:i', 'after:ora_inizio', 'before_or_equal:18:00'],
             'aula' => ['nullable', 'string', 'max:255'],
             'note' => ['nullable', 'string', 'max:1000'],
         ], [
             'insegnamento_id.in' => 'Seleziona un insegnamento tra quelli a te assegnati.',
             'data.after_or_equal' => 'Non è possibile fissare un appello in una data già passata.',
+            'ora_inizio.after_or_equal' => 'Un appello non può iniziare prima delle 08:00.',
+            'ora_fine.before_or_equal' => 'Un appello non può terminare dopo le 18:00.',
         ], [
             'insegnamento_id' => 'insegnamento',
             'sessione_id' => 'sessione',

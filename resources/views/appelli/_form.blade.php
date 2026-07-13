@@ -54,7 +54,9 @@
     <div class="col-md-4">
         <label for="ora_inizio" class="form-label">Ora di inizio</label>
         <input type="time" class="form-control @error('ora_inizio') is-invalid @enderror" id="ora_inizio" name="ora_inizio"
-            value="{{ old('ora_inizio', Str::substr((string) $appello->ora_inizio, 0, 5)) }}" required>
+            value="{{ old('ora_inizio', Str::substr((string) $appello->ora_inizio, 0, 5)) }}"
+            min="08:00" max="18:00" required>
+        <div class="form-text">Orario consentito: 08:00–18:00.</div>
         @error('ora_inizio')
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
@@ -63,7 +65,8 @@
     <div class="col-md-4">
         <label for="ora_fine" class="form-label">Ora di fine</label>
         <input type="time" class="form-control @error('ora_fine') is-invalid @enderror" id="ora_fine" name="ora_fine"
-            value="{{ old('ora_fine', Str::substr((string) $appello->ora_fine, 0, 5)) }}" required>
+            value="{{ old('ora_fine', Str::substr((string) $appello->ora_fine, 0, 5)) }}"
+            min="08:00" max="18:00" required>
         @error('ora_fine')
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror

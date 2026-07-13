@@ -362,6 +362,39 @@ class AppelloTest extends TestCase
         $this->assertDatabaseCount('appelli', 0);
     }
 
+    public function test_non_si_puo_fissare_un_appello_prima_delle_otto(): void
+    {
+        $response = $this->actingAs($this->docente)->post(route('appelli.store'), $this->datiValidi([
+            'ora_inizio' => '07:30',
+            'ora_fine' => '09:30',
+        ]));
+
+        $response->assertSessionHasErrors('ora_inizio');
+        $this->assertDatabaseCount('appelli', 0);
+    }
+
+    public function test_non_si_puo_fissare_un_appello_che_finisce_dopo_le_diciotto(): void
+    {
+        $response = $this->actingAs($this->docente)->post(route('appelli.store'), $this->datiValidi([
+            'ora_inizio' => '17:00',
+            'ora_fine' => '18:30',
+        ]));
+
+        $response->assertSessionHasErrors('ora_fine');
+        $this->assertDatabaseCount('appelli', 0);
+    }
+
+    public function test_l_appello_agli_estremi_della_fascia_e_accettato(): void
+    {
+        $response = $this->actingAs($this->docente)->post(route('appelli.store'), $this->datiValidi([
+            'ora_inizio' => '08:00',
+            'ora_fine' => '18:00',
+        ]));
+
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('appelli', 1);
+    }
+
     public function test_non_si_puo_fissare_un_appello_in_una_festivita(): void
     {
         // Sessione ampia che comprende il giorno di Natale
