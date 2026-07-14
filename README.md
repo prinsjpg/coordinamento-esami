@@ -10,7 +10,7 @@ Progetto per il corso di **Programmazione Web**.
 ## Tecnologie
 
 - **PHP 8.3 o superiore** e **Laravel 13**
-- **MySQL** (database `esami_coordinamento`)
+- **SQLite** di default, **MySQL** opzionale (vedi *Avvio in locale*)
 - **Laravel Jetstream** (Livewire) per autenticazione e profilo
 - **Spatie laravel-permission** per ruoli e permessi
 - **Bootstrap 5.3** + **jQuery** (via CDN) per l'interfaccia delle pagine applicative
@@ -124,7 +124,7 @@ ma gli revoca l'accesso ad essi.
 
 ## Avvio in locale
 
-Requisiti: PHP 8.3 o superiore, Composer, Node.js, MySQL.
+Requisiti: PHP 8.3 o superiore, Composer, Node.js.
 
 ```bash
 # 1. Dipendenze
@@ -134,9 +134,8 @@ npm install && npm run build
 # 2. Ambiente
 cp .env.example .env
 php artisan key:generate
-# configurare in .env: DB_DATABASE=esami_coordinamento, DB_USERNAME, DB_PASSWORD
 
-# 3. Database e dati di esempio (il server MySQL dev'essere già avviato)
+# 3. Database e dati di esempio
 php artisan migrate --seed
 
 # 4. Avvio
@@ -145,9 +144,32 @@ php artisan serve
 
 L'applicazione è raggiungibile su `http://127.0.0.1:8000`.
 
-> **Nota:** MySQL deve restare attivo anche durante l'uso. Le sessioni sono
-> salvate sul database (`SESSION_DRIVER=database`), quindi con il server spento
-> ogni pagina risponde con un errore 500.
+Di default il database è **SQLite**: nessun server da avviare, il file
+`database/database.sqlite` viene creato dalla migrazione.
+
+### Usare MySQL invece di SQLite
+
+Serve un server MySQL (o MariaDB) già avviato. Creare il database vuoto e
+scommentare il blocco già pronto in `.env`:
+
+```sql
+CREATE DATABASE esami_coordinamento;
+```
+
+```dotenv
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=esami_coordinamento
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+Poi rilanciare `php artisan migrate:fresh --seed`.
+
+> **Nota:** con MySQL il server deve restare attivo anche durante l'uso. Le
+> sessioni sono salvate sul database (`SESSION_DRIVER=database`), quindi a
+> server spento ogni pagina risponde con un errore 500.
 
 ## Utenti di esempio (creati dal seeder)
 
